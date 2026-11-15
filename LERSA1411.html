@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LERSA — Unified Lunar South Pole Digital Twin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070c16;--panel:#0f1a29;--card:#16253a;--line:#294059;--text:#e6eff8;--muted:#98adc3;--cyan:#64d9f1;--green:#6ee7aa;--orange:#ffbe69;--red:#ff6e79;--gold:#e3b341;--stageH:calc(52vh + 108px)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px 'IBM Plex Sans Arabic',system-ui,Arial,sans-serif}
+button,input,select{font:inherit}
+button,select{background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:7px 10px;cursor:pointer}
+button:hover,button.active{border-color:var(--cyan);color:var(--cyan)}
+header{padding:10px 18px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center}
+header h1{margin:0;color:var(--cyan);font-size:24px;letter-spacing:4px}
+header .sub{color:var(--muted);font-size:12px;line-height:1.5}
+main{display:grid;grid-template-columns:400px minmax(0,1fr);height:calc(100vh - 66px);min-height:640px;gap:10px;padding:10px}
+aside{overflow:auto;scrollbar-width:thin;padding:0 3px}
+details{border:1px solid var(--line);background:var(--panel);border-radius:9px;margin-bottom:9px;overflow:hidden}
+summary{padding:12px;cursor:pointer;font-weight:600;color:var(--cyan)}
+.inside{padding:0 12px 12px}
+.field{margin:10px 0}
+.fhead{display:grid;grid-template-columns:1fr 104px;align-items:center;gap:8px}
+.fhead label{font-size:12px;color:var(--muted)}
+.unit{color:#7fa0b8;font-size:11px}
+input[type=number]{width:104px;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:5px;direction:ltr;font-family:'JetBrains Mono',monospace;font-size:12px}
+input[type=range]{width:100%;accent-color:var(--cyan);direction:ltr;margin:4px 0 0}
+.check{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#cfdbe8;margin:9px 0;cursor:pointer}
+.check input{accent-color:var(--cyan);width:18px;height:18px}
+.stage{display:flex;min-width:0;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;padding:8px;border-bottom:1px solid var(--line);align-items:center}
+.viewport{position:relative;flex:1;min-height:360px;overflow:hidden;direction:ltr}
+.viewport canvas{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:absolute;top:10px;left:10px;direction:rtl;pointer-events:none;max-width:350px;background:#07111ddd;border:1px solid #35506a;border-radius:9px;padding:10px 12px;font-size:12px;line-height:1.85;backdrop-filter:blur(7px)}
+html[dir=ltr] .hud{direction:ltr}
+.hud strong{color:var(--cyan)}
+.hud .values{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+#pills{display:none;position:absolute;top:8px;left:8px;right:8px;gap:5px;flex-wrap:wrap;pointer-events:none;direction:ltr}
+.pill{background:#07111de6;border:1px solid #35506a;border-radius:20px;padding:3px 9px;font:11px 'JetBrains Mono',monospace}
+.scene-caption{position:absolute;bottom:10px;left:10px;right:10px;padding:8px;background:#08111cdb;border-radius:6px;color:#b5d6e8;font-size:12px;pointer-events:none;direction:rtl}
+html[dir=ltr] .scene-caption{direction:ltr}
+#compareOverlay{position:absolute;top:10px;right:10px;max-width:300px;background:#08111cdd;padding:12px;border-radius:9px;font-size:12px;display:none;line-height:1.7}
+.timebar{padding:8px 10px;border-top:1px solid var(--line)}
+.transport{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.transport output{margin-inline-start:auto}
+.scrub{width:100%;margin:10px 0 2px}
+.phases{display:flex;justify-content:space-between;color:var(--muted);font:10px 'JetBrains Mono',monospace;direction:ltr}
+.num,bdi,output{direction:ltr;unicode-bidi:isolate;font-family:'JetBrains Mono',ui-monospace,monospace}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.metric{background:var(--card);padding:7px;border-radius:6px}
+.metric span{display:block;font-size:10px;color:var(--muted)}
+.metric b{display:block;font-size:14px;color:var(--cyan);margin-top:4px;font-weight:500}
+.chart{height:190px;direction:ltr;margin:12px 0}
+.note{border-inline-start:3px solid var(--cyan);padding:8px;margin:8px 0;background:var(--card);font-size:12px;line-height:1.7}
+.warn{border-color:var(--orange);color:var(--orange)}
+.danger{border-color:var(--red);color:var(--red)}
+.good{color:var(--green);border-color:var(--green)}
+.sitecard{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.sitecard .full{grid-column:1/3}
+.formula{direction:ltr;unicode-bidi:isolate;overflow:auto;font:12px/2 'JetBrains Mono',monospace;color:var(--cyan);white-space:nowrap;background:var(--card);padding:8px;border-radius:6px}
+.tablewrap{overflow:auto}
+table{border-collapse:collapse;width:100%;font-size:11px}
+th,td{padding:7px 5px;border-bottom:1px solid var(--line);text-align:start;vertical-align:top}
+th{color:var(--cyan)}
+svg{display:block;width:100%;direction:ltr;background:var(--card);border-radius:8px}
+#footLoads{font-size:11px;margin:8px 0;color:var(--muted);line-height:1.7}
+.badge{padding:2px 7px;border:1px solid currentColor;border-radius:5px}
+#pillnav{display:none;gap:6px;overflow-x:auto;padding:8px 4px;background:var(--bg);scrollbar-width:none}
+#pillnav button{white-space:nowrap;border-radius:20px;font-size:12px}
+.toasts{position:fixed;bottom:22px;left:20px;z-index:50;display:grid;gap:8px;pointer-events:none}
+.toast{max-width:330px;background:var(--panel);padding:11px;border:1px solid var(--cyan);border-inline-start-width:5px;border-radius:8px;box-shadow:0 5px 30px #0008;font-size:13px}
+.toast.warn{border-color:var(--orange)}.toast.danger{border-color:var(--red)}.toast.good{border-color:var(--green)}.toast.ice{border-color:#a5d6ff}
+.error{position:fixed;inset:20%;background:var(--panel);padding:30px;border:1px solid var(--red);z-index:100;line-height:2;overflow:auto}
+footer{text-align:center;color:var(--muted);font-size:11px;padding:8px}
+@media(max-width:900px){
+ header{padding:8px 12px}header h1{font-size:20px}header .sub{display:none}
+ main{display:block;height:auto;min-height:0;padding:6px}
+ .stage{position:sticky;top:0;z-index:30;height:var(--stageH);border-radius:0 0 10px 10px}
+ .viewport{flex:none;height:52vh;min-height:0}
+ .tabs{padding:5px}.tabs button,.tabs select{flex:1;font-size:12px;padding:6px}
+ .hud,.scene-caption{display:none}
+ #pills{display:flex}
+ #compareOverlay{top:auto;bottom:8px;right:8px;max-width:230px;font-size:11px}
+ #pillnav{display:flex;position:sticky;top:var(--stageH);z-index:29}
+ aside{overflow:visible;touch-action:pan-y}
+ details{scroll-margin-top:calc(var(--stageH) + 56px)}
+ button,select,input[type=number]{min-height:40px}
+ input[type=range]{height:32px}
+ .timebar{padding:5px 8px}.transport button,.transport select{padding:6px 8px;font-size:12px}
+ .toasts{left:10px;right:10px;bottom:10px}
+}
+</style>
+</head>
+<body>
+<header>
+ <h1>LERSA</h1>
+ <div class="sub" data-ar="التوأم الرقمي الموحد لمنظومة القفز الباليستي القمري بالممتص الكهرومغناطيسي الخطي مسترد الطاقة — القطب الجنوبي القمري" data-en="Unified digital twin of the lunar ballistic hopper with a Linear Electromagnetic Regenerative Shock Absorber — Lunar South Pole">التوأم الرقمي الموحد لمنظومة القفز الباليستي القمري بالممتص الكهرومغناطيسي الخطي مسترد الطاقة — القطب الجنوبي القمري</div>
+</header>
+<main>
+<aside id="controls">
+ <nav id="pillnav">
+  <button data-jump="sec1" data-ar="الموقع والبيئة" data-en="Site & Env">الموقع والبيئة</button>
+  <button data-jump="sec3" data-ar="LERSA" data-en="LERSA">LERSA</button>
+  <button data-jump="sec6" data-ar="المقاييس" data-en="Metrics">المقاييس</button>
+  <button data-jump="charts" data-ar="الرسوم" data-en="Charts">الرسوم</button>
+  <button data-jump="sec7" data-ar="المخطط" data-en="Blueprint">المخطط</button>
+ </nav>
+ <details id="sec1" open><summary data-ar="1. موقع ناسا والبيئة" data-en="1. NASA Site & Environment">1. موقع ناسا والبيئة</summary><div class="inside" id="sec1_body"></div></details>
+ <details id="sec2"><summary data-ar="2. المهمة الباليستية" data-en="2. Ballistic Mission">2. المهمة الباليستية</summary><div class="inside" id="sec2_body"></div></details>
+ <details id="sec3"><summary data-ar="3. منظومة LERSA الكهروحرارية" data-en="3. LERSA Electro-Thermal">3. منظومة LERSA الكهروحرارية</summary><div class="inside" id="sec3_body"></div></details>
+ <details id="sec4"><summary data-ar="4. البنية والريغوليث" data-en="4. Structure & Regolith">4. البنية والريغوليث</summary><div class="inside" id="sec4_body"></div></details>
+ <details id="sec5"><summary data-ar="5. التطويرات والتحكم في الاتجاه" data-en="5. Upgrades & Attitude">5. التطويرات والتحكم في الاتجاه</summary><div class="inside" id="sec5_body"></div></details>
+ <details id="sec6" open><summary data-ar="6. القياس الحي والرسوم" data-en="6. Live Telemetry & Charts">6. القياس الحي والرسوم</summary><div class="inside">
+  <div id="siteCard" class="sitecard"></div>
+  <div id="metrics" class="metrics"></div>
+  <div id="charts"><div class="chart"><canvas id="energyChart"></canvas></div><div class="chart"><canvas id="gChart"></canvas></div></div>
+  <div id="notes"></div>
+ </div></details>
+ <details id="sec7"><summary data-ar="7. المخطط والمعادلات والمقارنة" data-en="7. Blueprint, Equations & Comparison">7. المخطط والمعادلات والمقارنة</summary><div class="inside">
+  <svg id="drawing" viewBox="0 0 400 300" aria-label="LERSA blueprint"></svg>
+  <div id="footLoads" class="num"></div>
+  <div class="formula">
+R = v0²·sin(2θ)/g &nbsp; H = v0²·sin²θ/(2g) &nbsp; T_f = 2·v0·sinθ/g<br>
+θ_auto = clamp(45° + α/2, 10°, 80°), α = atan(dy/dx)<br>
+Impact: 12-step bisection on y(t) − ground(x(t))<br>
+R_int(T) = max(0.2·R0, R0·[1 + α0·(clamp(T,−100,200) − 20)])<br>
+B_eff = B·(1.18 if Halbach else 1) &nbsp; k_em = N·B_eff·L<br>
+c_em = k_em² / (R_int + R_load)<br>
+|e| = k_em·v &nbsp; I = min(|e|/(R_int+R_load), I_max)<br>
+F_em = k_em·I &nbsp; F_active = min(3·m·g0, m·v²/(2·x_rem)) if x &gt; 0.9·stroke<br>
+m·dv/dt = −F_em − F_active (−m·v²/0.01 at end-stop)<br>
+P_elec = η·I²·R_load ≡ η·(R_load/(R_int+R_load))·F_em·v<br>
+Path1: supercap → battery (≤ P_charge) &nbsp; Path2: shunt (≤ P_dump) → bay heat<br>
+P_heater = UA·max(0, 253 K − T_amb), UA = 0.06 W/K<br>
+P_solar = P_rated·max(0, cos(e_sun + α))·(1 − shadow)<br>
+DTE: ray from mast @ e_earth must clear terrain<br>
+E_net = E_reg + E_solar − E_att − E_avionics − E_heater
+  </div>
+  <p class="note" data-ar="نموذج مفاهيمي وليس تأهيلًا للطيران. تكامل بخطوة ثابتة 1/240 ثانية. الإطلاق بمشغل مستقل مفترض بكفاءة 80%؛ LERSA ممتص/مولد. قيم المواقع مُشتقة ومقرّبة من LOLA/Diviner/LCROSS/GRAIL ومُصغّرة هندسيًا للعرض. قانون مقاومة النحاس الخطي غير صالح قرب 40 K فيُحصر بين −100 و200°C مع أرضية 0.2·R0. كل طاقة المركبة الحركية تُسقط على شوط مكافئ واحد؛ لا ديناميكا متعددة الأجسام. الظل يحسب بتتبع أشعة ثنائي البعد على مقطع المسار؛ شمس 0° تعني ظلًا دائمًا للموقع كله. هالباخ 18% افتراض. المخمدات المقارنة توضيحية." data-en="Concept model, not flight qualification. Fixed 1/240 s integration. Launch uses an assumed independent 80%-efficient actuator; LERSA is absorber/generator. Site values are approximations derived from LOLA/Diviner/LCROSS/GRAIL and geometrically scaled for display. The linear copper law is invalid near 40 K, so it is bounded to −100…200 °C with a 0.2·R0 floor. Total kinetic energy maps to one equivalent stroke; no multibody dynamics. Shadow uses a 2D raycast along the path profile; 0° sun means permanent shadow for the whole site. Halbach 18% is an assumption. Comparison dampers are illustrative.">نموذج مفاهيمي وليس تأهيلًا للطيران.</p>
+  <div class="tablewrap"><table id="comparison"></table></div>
+ </div></details>
+</aside>
+<section class="stage">
+ <nav class="tabs">
+  <button class="active" data-tab="0" data-ar="المهمة والموقع" data-en="Mission & Site">المهمة والموقع</button>
+  <button data-tab="1" data-ar="مقطع LERSA" data-en="LERSA Cross-Section">مقطع LERSA</button>
+  <button data-tab="2" data-ar="مقارنة المخمدات" data-en="Damper Benchmark">مقارنة المخمدات</button>
+  <select id="camera" aria-label="Camera">
+   <option value="follow" data-ar="متابعة" data-en="Follow">متابعة</option>
+   <option value="side" data-ar="جانبي" data-en="Side">جانبي</option>
+   <option value="top" data-ar="الفوهة" data-en="Crater">الفوهة</option>
+   <option value="free" data-ar="حر" data-en="Free orbit">حر</option>
+  </select>
+ </nav>
+ <div class="viewport" id="viewport">
+  <div id="hud" class="hud"></div>
+  <div id="pills"></div>
+  <div id="compareOverlay"></div>
+  <div id="caption" class="scene-caption"></div>
+ </div>
+ <div class="timebar">
+  <div class="transport">
+   <button id="play" data-ar="إيقاف مؤقت" data-en="Pause">إيقاف مؤقت</button>
+   <button id="reset" data-ar="إعادة" data-en="Reset">إعادة</button>
+   <button id="single" data-ar="قفزة واحدة" data-en="One hop">قفزة واحدة</button>
+   <select id="speed" aria-label="Speed"><option value="0.25">0.25x</option><option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option><option value="4">4x</option><option value="10">10x</option></select>
+   <button id="language">English</button>
+   <output id="clock">0.00 s</output>
+  </div>
+  <input id="timeline" class="scrub" type="range" min="0" max="1" step="0.016667" value="0" aria-label="Mission time">
+  <div class="phases"><span>launch</span><span>flight</span><span>impact</span><span>damping</span><span>unload</span><span>recharge</span><span>rest</span></div>
+ </div>
+</section>
+</main>
+<footer>LERSA Digital Twin — Lunar Electromagnetic Regenerative Shock Absorber · LRO LOLA / Diviner · LCROSS · GRAIL · VIPER-derived reference values</footer>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+<script>
+window.addEventListener('error',function(e){var b=document.createElement('div');b.className='error';b.textContent='JS error: '+e.message+' (line '+e.lineno+')';document.body.appendChild(b);});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+if(!window.THREE||!THREE.OrbitControls||!window.Chart){const e=document.createElement('div');e.className='error';e.textContent='تعذر تحميل مكتبات CDN / CDN load failed. Check your internet connection.';document.body.append(e);return;}
+
+/* ===================== CORE HELPERS ===================== */
+let lang='ar';
+const tr=(a,e)=>lang==='ar'?a:e;
+const fmt=(v,d=2)=>Number.isNaN(v)||v===undefined?'—':Number.isFinite(v)?v.toFixed(d):'∞';
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rad=Math.PI/180,STEP=1/240,G0=9.80665;
+const sstep=(a,b,x)=>{let t=(x-a)/(b-a);t=t<0?0:t>1?1:t;return t*t*(3-2*t);};
+
+/* ===================== NASA LUNAR SOUTH POLE CALIBRATED DATASET (LRO LOLA, DIVINER, LCROSS, VIPER) ===================== */
+const NASA_LUNAR_SITES={
+ shackleton_rim:{id:"shackleton_rim",name_en:"Shackleton Crater Rim (Artemis Connecting Ridge)",name_ar:"حافة فوهة شاكلتون (موقع أرتميس المرشح)",coords:"89.6°S, 129.2°E",crater_depth_m:2.2,entry_slope_deg:11.0,exit_slope_deg:14.0,sun_elevation_deg:2.2,ambient_temp_K:210,coil_temp_C:-63,earth_elevation_deg:5.8,dte_visible:true,soil_bearing_limit_kPa:15.0,ice_concentration_wt:0.5,gravity_ms2:1.622},
+ shackleton_psr:{id:"shackleton_psr",name_en:"Shackleton Crater Interior PSR (4.2 km Deep Basin)",name_ar:"قاع فوهة شاكلتون — منطقة الظل الدائم (PSR)",coords:"89.9°S, 0.0°E",crater_depth_m:6.5,entry_slope_deg:31.0,exit_slope_deg:42.0,sun_elevation_deg:0.0,ambient_temp_K:40,coil_temp_C:-233,earth_elevation_deg:-18.0,dte_visible:false,soil_bearing_limit_kPa:12.0,ice_concentration_wt:5.2,gravity_ms2:1.623},
+ cabeus_psr:{id:"cabeus_psr",name_en:"Cabeus Crater PSR (LCROSS Impact Zone)",name_ar:"فوهة كابيوس — منطقة ارتطام LCROSS",coords:"84.9°S, 35.5°W",crater_depth_m:5.8,entry_slope_deg:28.0,exit_slope_deg:38.0,sun_elevation_deg:0.0,ambient_temp_K:38,coil_temp_C:-235,earth_elevation_deg:-12.0,dte_visible:false,soil_bearing_limit_kPa:10.0,ice_concentration_wt:5.6,gravity_ms2:1.622},
+ mons_mouton:{id:"mons_mouton",name_en:"Mons Mouton / Nobile Rim (VIPER Target Plateau)",name_ar:"هضبة مونس موتون / حافة نوبل (هدف مسبار VIPER)",coords:"84.6°S, 31.0°E",crater_depth_m:2.8,entry_slope_deg:16.0,exit_slope_deg:22.0,sun_elevation_deg:3.8,ambient_temp_K:195,coil_temp_C:-78,earth_elevation_deg:6.1,dte_visible:true,soil_bearing_limit_kPa:14.5,ice_concentration_wt:1.8,gravity_ms2:1.622},
+ haworth_psr:{id:"haworth_psr",name_en:"Haworth Crater PSR (Ultra-Cold Volatile Trap)",name_ar:"فوهة هاوورث — مصيدة المتطايرات فائقة البرودة",coords:"87.5°S, 5.2°W",crater_depth_m:6.2,entry_slope_deg:33.0,exit_slope_deg:40.0,sun_elevation_deg:0.0,ambient_temp_K:35,coil_temp_C:-238,earth_elevation_deg:-15.0,dte_visible:false,soil_bearing_limit_kPa:11.0,ice_concentration_wt:4.8,gravity_ms2:1.623},
+ malapert_massif:{id:"malapert_massif",name_en:"Malapert Massif Peak (Comms & Solar Relay Hub)",name_ar:"قمة جبل مالابيرت (مركز الاتصالات والطاقة)",coords:"86.0°S, 0.0°E",crater_depth_m:1.2,entry_slope_deg:10.0,exit_slope_deg:12.0,sun_elevation_deg:5.4,ambient_temp_K:235,coil_temp_C:-38,earth_elevation_deg:6.4,dte_visible:true,soil_bearing_limit_kPa:18.0,ice_concentration_wt:0.1,gravity_ms2:1.621}
+};
+
+/* ===================== PARAMETER DEFINITIONS (7-section UI) ===================== */
+const p={};let siteId='shackleton_psr';
+const DEF=[
+ {id:'sec1',site:true,items:[
+  ['gravity','الجاذبية','Gravity',1.623,.1,25,.001,'m/s²'],
+  ['sun','ارتفاع الشمس','Sun elevation',0,0,20,.1,'°'],
+  ['earth','ارتفاع الأرض فوق الأفق','Earth elevation',-18,-30,30,.1,'°'],
+  ['depth','عمق الفوهة','Crater depth',6.5,.5,10,.1,'m'],
+  ['entry','ميل جدار الدخول','Entry wall slope',31,3,60,.5,'°'],
+  ['exit','ميل جدار الخروج','Exit wall slope',42,3,60,.5,'°'],
+  ['obstacle','ارتفاع الصخرة العائق','Boulder height',1.2,0,6,.1,'m'],
+  ['ice','تركيز جليد الماء','Water-ice concentration',5.2,0,10,.1,'wt%'],
+  ['tsun','حرارة السطح المضاء','Sunlit ambient',210,100,400,1,'K'],
+  ['tpsr','حرارة الظل الدائم','Shadow / PSR ambient',40,20,150,1,'K'],
+  ['pressure','حد تحمل التربة','Soil bearing limit',12,2,100,.5,'kPa']]},
+ {id:'sec2',items:[
+  ['mass','الكتلة','Mass',25,5,150,1,'kg'],
+  ['velocity','سرعة الإطلاق','Launch speed',5.7,1,12,.1,'m/s'],
+  ['angle','زاوية الإطلاق اليدوية','Manual launch angle',45,10,80,1,'°'],
+  ['auto','زاوية تلقائية θ = 45° + α/2','Automatic angle θ = 45° + α/2',true],
+  ['target','مسافة الهدف','Target distance',140,10,220,1,'m'],
+  ['dwell','توقف وشحن','Recharge dwell',5,1,30,.5,'s'],
+  ['hops','أقصى عدد قفزات','Max hops',14,1,30,1,''],
+  ['continuous','تكرار المهمة عند نهايتها','Repeat mission at end',false],
+  ['prediction','إظهار المسار المتوقع','Show predicted path',true],
+  ['viper','مقارنة مسبار VIPER','VIPER benchmark',true]]},
+ {id:'sec3',items:[
+  ['temperature','حرارة الملف','Coil temperature',-233,-253,200,1,'°C'],
+  ['turns','عدد اللفات N','Turns N',120,20,800,5,''],
+  ['flux','كثافة التدفق B','Flux density B',1.2,.1,1.8,.05,'T'],
+  ['length','الطول الفعال L','Active length L',.45,.05,.8,.01,'m'],
+  ['r0','مقاومة المرجع R₀ @20°C','Reference resistance R₀ @20°C',1.8,.1,10,.1,'Ω'],
+  ['load','مقاومة الحمل','Load resistance',4.5,.2,20,.1,'Ω'],
+  ['alpha','المعامل الحراري α₀','Thermal coefficient α₀',.00393,.001,.005,.00001,'1/°C'],
+  ['eta','كفاءة المحوّل η','Converter efficiency η',.85,.2,.98,.01,''],
+  ['cap','سعة المكثفات الفائقة','Supercapacitor capacity',500,20,5000,10,'J'],
+  ['current','حد التيار','Current limit',150,1,500,1,'A'],
+  ['charge','حد قدرة شحن البطارية','Battery charge power limit',40,1,200,1,'W'],
+  ['heater','سعة مقاومات التبديد الحرارية','Thermal shunt capacity',150,5,1500,5,'W'],
+  ['battery','طاقة البطارية الأولية','Initial battery energy',200000,1000,1000000,1000,'J'],
+  ['solar','قدرة الألواح الاسمية','Rated solar power',60,0,300,1,'W']]},
+ {id:'sec4',items:[
+  ['legs','عدد الأرجل','Leg count',4,3,6,1,''],
+  ['pad','قطر الوسادة','Pad diameter',.4,.08,.8,.01,'m'],
+  ['stroke','شوط الامتصاص','Absorber stroke',.3,.03,.6,.01,'m'],
+  ['radius','نصف قطر الأرجل','Leg footprint radius',.75,.4,1.4,.05,'m'],
+  ['height','ارتفاع الجسم','Body height',1.2,.7,2,.05,'m'],
+  ['glimit','حد التباطؤ','Deceleration limit',20,2,100,1,'g₀'],
+  ['independent','أقدام مستقلة التكيّف','Independent adaptive feet',true]]},
+ {id:'sec5',items:[
+  ['halbach','مصفوفة هالباخ شعاعية Sm₂Co₁₇ (+18%)','Radial Sm₂Co₁₇ Halbach (+18%)',false],
+  ['titanium','غلاف تيتانيوم بدل الكربون (بصري)','Titanium sleeve instead of carbon (visual)',false],
+  ['bridge','جسر حراري كربوني للبطارية','Carbon-fibre battery thermal bridge',true],
+  ['lock','قفل سكون سلبي','Passive rest latch',true],
+  ['active','كبح نشط في آخر 10%','Active braking in final 10%',true],
+  ['rw','عجلات رد الفعل الثلاث','3-axis reaction wheels',true],
+  ['inertia','قصور العجلة','Wheel inertia',.002,.0005,.02,.0005,'kg·m²'],
+  ['rwPower','قدرة التوجيه','Attitude-control power',2,0,15,.1,'W'],
+  ['avionics','قدرة الإلكترونيات','Avionics power',3,0,20,.1,'W'],
+  ['activeTime','زمن التثبيت النشط','Active stabilization time',5,.5,20,.5,'s']]}
+];
+const ALL=DEF.flatMap(s=>s.items);
+ALL.forEach(d=>p[d[0]]=d[3]);
+const ENV_KEYS=new Set(['gravity','sun','earth','depth','entry','exit','obstacle','ice','tsun','tpsr','temperature','pressure']);
+const nv=v=>String(Number(Number(v).toPrecision(7)));
+
+function applySite(id,doRebuild=true){
+ siteId=id;const s=NASA_LUNAR_SITES[id];if(!s)return;
+ Object.assign(p,{gravity:s.gravity_ms2,depth:s.crater_depth_m,entry:s.entry_slope_deg,exit:s.exit_slope_deg,sun:s.sun_elevation_deg,
+  temperature:s.coil_temp_C,earth:s.earth_elevation_deg,pressure:s.soil_bearing_limit_kPa,ice:s.ice_concentration_wt,
+  tsun:s.sun_elevation_deg>0?s.ambient_temp_K:210,tpsr:s.sun_elevation_deg<=0?s.ambient_temp_K:90});
+ syncControls();if(doRebuild)rebuild();
+}
+
+/* ===================== CONTROL BUILDER (slider + synced number box) ===================== */
+function fieldHTML(d){
+ const [k,ar,en,def,min,max,st,unit]=d;
+ if(typeof def==='boolean')return `<label class="check"><input type="checkbox" id="c_${k}" ${p[k]?'checked':''}><span>${tr(ar,en)}</span></label>`;
+ return `<div class="field"><div class="fhead"><label for="n_${k}">${tr(ar,en)} <bdi class="unit">${unit}</bdi></label><input type="number" id="n_${k}" min="${min}" max="${max}" step="${st}" value="${nv(p[k])}"></div><input type="range" id="r_${k}" min="${min}" max="${max}" step="${st}" value="${p[k]}" aria-label="${en}"></div>`;
+}
+function siteHTML(){
+ const opts=Object.values(NASA_LUNAR_SITES).map(s=>`<option value="${s.id}">${tr(s.name_ar,s.name_en)}</option>`).join('');
+ return `<div class="field"><label for="site" style="font-size:12px;color:var(--muted)">${tr('موقع ناسا القمري','NASA Lunar Site')}</label><select id="site" style="width:100%;margin-top:5px">${opts}<option value="custom">${tr('مخصص / بارامتري','Custom / Parametric')}</option></select></div><div id="siteInfo" class="note"></div><button id="siteReset">${tr('إعادة قيم الموقع','Restore site values')}</button>`;
+}
+let rebuildTimer=null;
+function scheduleRebuild(){clearTimeout(rebuildTimer);rebuildTimer=setTimeout(rebuild,220);}
+function onParam(k){
+ if(ENV_KEYS.has(k)&&siteId!=='custom'){siteId='custom';$('site').value='custom';updateSiteInfo();}
+ scheduleRebuild();
+}
+function buildControls(){
+ DEF.forEach(sec=>{$(sec.id+'_body').innerHTML=(sec.site?siteHTML():'')+sec.items.map(fieldHTML).join('');});
+ ALL.forEach(d=>{
+  const k=d[0];
+  if(typeof d[3]==='boolean'){$('c_'+k).addEventListener('change',e=>{p[k]=e.target.checked;onParam(k);});return;}
+  const r=$('r_'+k),n=$('n_'+k);
+  const norm=v=>{let x=clamp(Number.isFinite(v)?v:d[3],d[4],d[5]);if(k==='legs'||k==='hops')x=Math.round(x);return x;};
+  r.addEventListener('input',()=>{p[k]=norm(Number(r.value));n.value=nv(p[k]);onParam(k);});
+  n.addEventListener('change',()=>{p[k]=norm(Number(n.value));n.value=nv(p[k]);r.value=p[k];onParam(k);});
+ });
+ $('site').value=siteId;
+ $('site').onchange=e=>{if(e.target.value==='custom'){siteId='custom';updateSiteInfo();}else applySite(e.target.value);};
+ $('siteReset').onclick=()=>{if(siteId!=='custom')applySite(siteId);else applySite('shackleton_psr');};
+ updateSiteInfo();
+}
+function syncControls(){
+ ALL.forEach(d=>{const k=d[0];
+  if(typeof d[3]==='boolean'){const c=$('c_'+k);if(c)c.checked=p[k];}
+  else{const r=$('r_'+k),n=$('n_'+k);if(r){r.value=p[k];n.value=nv(p[k]);}}});
+ if($('site'))$('site').value=siteId;updateSiteInfo();
+}
+function updateSiteInfo(){
+ const s=NASA_LUNAR_SITES[siteId],e=$('siteInfo');if(!e)return;
+ e.innerHTML=s?`<b>${tr(s.name_ar,s.name_en)}</b><br><bdi>${s.coords}</bdi> · ${tr('جليد','Ice')} <bdi>${s.ice_concentration_wt} wt%</bdi> · <bdi>${s.ambient_temp_K} K</bdi> · DTE ${s.dte_visible?'✓':'✗'}`:tr('وضع مخصص: القيم البيئية معدّلة يدويًا.','Custom mode: environment values were edited manually.');
+}
+function translate(){
+ document.documentElement.lang=lang;document.documentElement.dir=lang==='ar'?'rtl':'ltr';
+ document.querySelectorAll('[data-ar]').forEach(e=>e.textContent=e.dataset[lang]);
+ $('language').textContent=lang==='ar'?'English':'العربية';
+}
+
+/* ===================== TERRAIN (single function for physics + render) ===================== */
+const CR={x:75,rf:10},BO={x:11,r:2.2,e:.8};
+function hash(i,j){const s=Math.sin(i*127.1+j*311.7)*43758.5453;return s-Math.floor(s);}
+function vnoise(x,z){const i=Math.floor(x),j=Math.floor(z),fx=x-i,fz=z-j,u=fx*fx*(3-2*fx),v=fz*fz*(3-2*fz);const a=hash(i,j),b=hash(i+1,j),c=hash(i,j+1),d=hash(i+1,j+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;}
+function fbm(x,z){let s=0,a=1,f=1;for(let k=0;k<5;k++){s+=a*(vnoise(x*f,z*f)-.5);a*=.5;f*=2.03;}return s;}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const dents=[];{const r=mulberry(7);for(let i=0;i<90;i++){const R=.6+Math.pow(r(),2.2)*7;dents.push({x:-20+r()*240,z:(r()<.5?-1:1)*(8+r()*55),R});}}
+function decor(x,z){
+ let h=fbm(x*.045,z*.045)*3*sstep(6,30,Math.abs(z))+fbm(x*.6,z*.6)*.22;
+ for(const d of dents){const r=Math.hypot(x-d.x,z-d.z);if(r<d.R*1.5)h+=r<d.R?d.R*.22*((r/d.R)**2-1):d.R*.06*Math.exp(-(((r-d.R)/(.22*d.R))**2));}
+ return h;
+}
+function craterH(x,z){
+ const dx=x-CR.x,r=Math.hypot(dx,z),t=r>1e-6?(dx/r+1)/2:.5;
+ const a=clamp(p.entry+(p.exit-p.entry)*t,2,75)*rad,W=p.depth/Math.tan(a);
+ let h=0;if(r<CR.rf)h=-p.depth;else if(r<CR.rf+W)h=-p.depth+(r-CR.rf)*Math.tan(a);
+ return h+.45*Math.exp(-(((r-CR.rf-W)/2.2)**2));
+}
+function boulderH(r){return p.obstacle*sstep(BO.r+BO.e,BO.r*.55,r)*(1-.05*Math.pow(Math.min(r,BO.r)/BO.r,2));}
+const baseH=(x,z)=>.06*Math.sin(x*.27)*Math.cos(z*.22)+.04*Math.sin(z*.8+x*.13);
+const hardH=(x,z)=>craterH(x,z)+boulderH(Math.hypot(x-BO.x,z))+baseH(x,z);
+function ground(x,z=0){const w=sstep(4,10,Math.abs(z));return hardH(x,z)+(w>0?w*decor(x,z):0);}
+const pathH=x=>hardH(x,0);
+const slope=x=>Math.atan2(pathH(x+.05)-pathH(x-.05),.1);
+const exitRim=()=>CR.x+CR.rf+p.depth/Math.tan(clamp(p.exit,2,75)*rad);
+
+/* Shadow (sun from −x) and DTE (Earth toward +x) via 2D horizon raycasts */
+const TX0=-25,TX1=235,TD=.25;let shadowTab=new Uint8Array(1);
+function buildTables(){
+ const n=Math.ceil((TX1-TX0)/TD)+1;shadowTab=new Uint8Array(n);const ts=Math.tan(p.sun*rad);
+ for(let i=0;i<n;i++){const x=TX0+i*TD,h=pathH(x);let sh=p.sun<=0;
+  if(!sh)for(let d=.5;d<150;d+=.5){if(pathH(x-d)>h+.02+d*ts){sh=true;break;}}
+  shadowTab[i]=sh?1:0;}
+}
+const shadow=x=>shadowTab[clamp(Math.round((x-TX0)/TD),0,shadowTab.length-1)]===1;
+function dteAt(x,y){
+ if(p.earth<=0)return false;const te=Math.tan(p.earth*rad),h0=y+p.height+1.3;
+ for(let d=.5;d<160;d+=.5)if(pathH(x+d)>h0+d*te)return false;return true;
+}
+const ambient=x=>shadow(x)?p.tpsr:p.tsun;
+const thermalLoad=x=>.06*Math.max(0,253.15-ambient(x));
+const solarPower=(x,a)=>shadow(x)?0:p.solar*Math.max(0,Math.cos(p.sun*rad+a));
+
+/* ===================== ELECTROMAGNETIC MODEL ===================== */
+function electrical(){
+ const Teff=clamp(p.temperature,-100,200);
+ const R=Math.max(.2*p.r0,p.r0*(1+p.alpha*(Teff-20)));
+ const b=p.flux*(p.halbach?1.18:1),k=p.turns*b*p.length;
+ return {R,b,k,c:k*k/(R+p.load),Teff};
+}
+
+/* ===================== DETERMINISTIC 1/240 s SOLVER ===================== */
+let samples=[],hopData=[],endTime=0,time=0,playing=true,tab=0,singleEnd=null,lastUI=-1;
+const phases=[['إطلاق','Launch'],['طيران باليستي','Ballistic flight'],['اقتراب هبوط','Landing approach'],['ارتطام / تخميد','Impact / damping'],['تفريغ زخم العجلات','Momentum unloading'],['شحن / استقرار','Recharge / settle'],['سكون / توقف','Rest / halt']];
+let missionFail='';
+function simulate(){
+ samples=[];hopData=[];missionFail='';
+ const el=electrical(),frac=p.bridge?.9:.4;
+ let t=0,x=0,y=pathH(0),battery=p.battery,cap=0,used=0,reg=0,shunt=0,store=0,solarE=0,unrouted=0,heaterE=0,attE=0,avE=0;
+ let error=0,omega=.06,momentum=0,roverX=0,roverStopped=false,counter=0,failed=false,pshunt=0,pelec=0;
+ function record(phase,hop,speed,comp=0,gg=0,force=0,ls=0,forced=false){
+  if(counter++%4!==0&&!forced)return;
+  samples.push({t,x,y,phase,hop,speed,comp,gg,force,battery,cap,used,reg,shunt,store,error,momentum,roverX,roverStopped,ls,failed,pshunt,pelec,solarE,unrouted});
+ }
+ function consume(j){const n=Math.min(battery,Math.max(0,j));battery-=n;used+=n;return n;}
+ function tick(dt,a,extra,att){
+  const s=Math.min(solarPower(x,a)*dt,p.battery-battery);battery+=s;solarE+=s;
+  const need=thermalLoad(x)*dt,fs=Math.min(store,need);store-=fs;heaterE+=need-fs;consume(need-fs);
+  consume((p.avionics+extra+att)*dt);avE+=p.avionics*dt;attE+=att*dt;
+  t+=dt;
+  if(p.viper&&!roverStopped){
+   const z=-2.6,nx=roverX+.2*dt;
+   const sl=Math.abs(Math.atan2(ground(nx+.6,z)-ground(nx+.2,z),.4));
+   if(sl>20*rad||ground(nx+.5,z)-ground(nx,z)>.25)roverStopped=true;else roverX=nx;
+  }
+ }
+ function recover(j,dt){
+  reg+=j;const a=Math.min(j,p.cap-cap);cap+=a;let ex=j-a;
+  const b=Math.min(ex,p.charge*dt,p.battery-battery);battery+=b;ex-=b;
+  const sh=Math.min(ex,p.heater*dt);shunt+=sh;store+=sh*frac;ex-=sh;unrouted+=ex;
+  pshunt=sh/dt;return {sh,ex};
+ }
+ record(5,0,0,0,0,p.mass*p.gravity,slope(0),true);
+ for(let h=0;h<p.hops&&!failed&&x<p.target;h++){
+  const st={x,t,used,reg,shunt,unrouted,solarE,heaterE,attE,avE};
+  const a0=slope(x);
+  const angle=clamp(p.auto?45+a0/rad/2:p.angle,10,80)*rad;
+  const launchE=.5*p.mass*p.velocity**2/.8;
+  const fromCap=Math.min(cap,launchE);
+  if(battery<launchE-fromCap){failed=true;missionFail='battery';record(6,h,0,0,0,0,a0,true);break;}
+  cap-=fromCap;consume(launchE-fromCap);
+  let vx=p.velocity*Math.cos(angle),vy=p.velocity*Math.sin(angle),flightT=0,hit=false,px=x,py=y;
+  omega+=.07;error+=1;pelec=0;pshunt=0;
+  const Hmax=p.inertia*6000*2*Math.PI/60;
+  while(flightT<45){
+   px=x;py=y;
+   x+=vx*STEP;y+=vy*STEP-.5*p.gravity*STEP*STEP;vy-=p.gravity*STEP;flightT+=STEP;
+   const on=p.rw&&flightT<p.activeTime&&battery>0;
+   const torque=on?clamp(-.09*error*rad-.8*omega,-.12,.12):0;
+   const eff=Math.abs(momentum-torque*STEP)<=Hmax?torque:0;
+   momentum-=eff*STEP;omega+=eff/(p.mass*.15)*STEP;error+=omega/rad*STEP;
+   tick(STEP,0,shadow(x)?6:0,on?p.rwPower:0);
+   if(y<=pathH(x)&&flightT>.025){
+    let lo=0,hi=1;
+    for(let q=0;q<12;q++){const m=(lo+hi)/2,xx=px+(x-px)*m,yy=py+(y-py)*m;if(yy>pathH(xx))lo=m;else hi=m;}
+    x=px+(x-px)*hi;y=pathH(x);hit=true;break;
+   }
+   record(flightT<.15?0:vy<0&&y-pathH(x)<2?2:1,h+1,Math.hypot(vx,vy));
+  }
+  if(!hit){failed=true;missionFail='nocontact';break;}
+  const impactSpeed=Math.hypot(vx,vy),impact=.5*p.mass*impactSpeed**2,ls=slope(x),impactT=t;
+  let u=impactSpeed,comp=0,peak=0,peakF=0,sumG=0,n=0,hardStop=false,recovered=0,coilHeat=0,activeHeat=0,shH=0,unH=0;
+  const series=[];
+  while(u>.008&&t-impactT<3){
+   const I=Math.min(el.k*u/(el.R+p.load),p.current),fem=el.k*I;
+   const rem=Math.max(1e-4,p.stroke-comp);
+   const fact=p.active&&comp>.9*p.stroke?Math.min(3*p.mass*G0,p.mass*u*u/(2*rem)):0;
+   let force=fem+fact;
+   if(comp>=p.stroke){hardStop=true;force+=p.mass*u*u/.01;}
+   const un=Math.max(0,u-force/p.mass*STEP),dx=(u+un)*.5*STEP,removed=.5*p.mass*(u*u-un*un);
+   const emF=force>0?fem/force:0,elecE=removed*emF,conv=elecE*p.load/(el.R+p.load)*p.eta;
+   recovered+=conv;coilHeat+=elecE-conv;activeHeat+=removed-elecE;
+   const r=recover(conv,STEP);shH+=r.sh;unH+=r.ex;pelec=conv/STEP;
+   comp+=dx;
+   const gg=(u-un)/STEP/G0;peak=Math.max(peak,gg);peakF=Math.max(peakF,force);sumG+=gg;n++;
+   if(n%2===0)series.push({x:t-impactT,y:gg});
+   u=un;tick(STEP,ls,shadow(x)?6:0,0);
+   record(3,h+1,u,Math.min(comp,p.stroke),gg,force,ls);
+  }
+  const dampT=t-impactT;
+  const imb=p.independent?1+.4*Math.abs(Math.sin(ls)):1+2*Math.abs(Math.sin(ls));
+  const pressure=(peakF+p.mass*p.gravity)*imb/(p.legs*Math.PI*(p.pad/2)**2)/1000;
+  const res={h:h+1,startT:st.t,endT:0,startX:st.x,x,flightT,angle,impact,impactSpeed,recovered,shunt:shH,unrouted:unH,coilHeat,activeHeat,
+   peak,avg:n?sumG/n:0,peakF,compression:Math.min(comp,p.stroke),required:el.c?p.mass*impactSpeed/el.c:0,pressure,
+   diameter:2*Math.sqrt((peakF+p.mass*p.gravity)*imb/(p.legs*Math.PI*p.pressure*1000)),
+   landingSlope:ls,hardStop,series,dampingDuration:dampT,launchE,used:0,att:0,avionics:0,heater:0,solar:0,net:0};
+  if(hardStop){failed=true;missionFail='endstop';}
+  else if(Math.abs(error)>55){failed=true;missionFail='tip';}
+  else if(Math.abs(ls)>60*rad){failed=true;missionFail='slope';}
+  pshunt=0;pelec=0;
+  const m0=momentum,e0=error,c0=Math.min(comp,p.stroke);
+  for(let s=0;s<p.dwell;s+=STEP){
+   const tr_=Math.min(cap,p.charge*STEP,p.battery-battery);cap-=tr_;battery+=tr_;
+   momentum=m0*Math.max(0,1-s/Math.min(2,p.dwell));
+   if(p.independent)error=e0*Math.exp(-2*s);
+   omega=0;tick(STEP,ls,p.lock?0:1.5,0);
+   record(s<Math.min(2,p.dwell)?4:5,h+1,0,c0*Math.exp(-3*s),0,p.mass*p.gravity,ls);
+  }
+  res.endT=t;res.used=used-st.used;res.att=attE-st.attE;res.avionics=avE-st.avE;res.heater=heaterE-st.heaterE;res.solar=solarE-st.solarE;
+  res.net=res.recovered+res.solar-res.att-res.avionics-res.heater;
+  hopData.push(res);
+  if(!failed&&x-st.x<.1){failed=true;missionFail='stuck';}
+  record(failed?6:5,h+1,0,0,0,p.mass*p.gravity,ls,true);
+ }
+ endTime=t;
+ samples.push(Object.assign({},samples[samples.length-1],{t,phase:6,failed}));
+ $('timeline').max=Math.max(endTime,.01);
+}
+
+/* ===================== THREE.JS SCENE ===================== */
+let renderer;
+try{renderer=new THREE.WebGLRenderer({antialias:true});}catch(e){const m=document.createElement('div');m.className='error';m.textContent='WebGL غير متاح / WebGL unavailable.';document.body.append(m);return;}
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
+$('viewport').prepend(renderer.domElement);
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x020409);
+const camera=new THREE.PerspectiveCamera(48,1,.05,3000);camera.position.set(-10,8,16);
+const orbit=new THREE.OrbitControls(camera,renderer.domElement);orbit.enableDamping=true;
+orbit.addEventListener('start',()=>{if($('camera').value!=='free')$('camera').value='free';});
+const hemi=new THREE.HemisphereLight(0x8aa0c0,0x101216,.3);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff2e0,2.6);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-45,right:45,top:45,bottom:-45,near:1,far:420});sun.shadow.bias=-.0006;sun.shadow.normalBias=.04;
+scene.add(sun,sun.target);
+const lab=new THREE.DirectionalLight(0xffffff,1.4);lab.position.set(6,10,8);scene.add(lab);
+const envGroup=new THREE.Group(),missionGroup=new THREE.Group(),cutGroup=new THREE.Group(),comparisonGroup=new THREE.Group();
+scene.add(envGroup,missionGroup,cutGroup,comparisonGroup);
+const mat=(color,o={})=>new THREE.MeshStandardMaterial({color,roughness:.65,metalness:.3,...o});
+function mesh(geo,material,parent,x=0,y=0,z=0){const m=new THREE.Mesh(geo,material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
+const UP=new THREE.Vector3(0,1,0),UNIT_CYL=new THREE.CylinderGeometry(1,1,1,12);
+function orientUnit(m,a,b,r){const d=new THREE.Vector3().subVectors(b,a),L=Math.max(1e-4,d.length());m.position.copy(a).addScaledVector(d,.5);m.quaternion.setFromUnitVectors(UP,d.divideScalar(L));m.scale.set(r,L,r);}
+function clearGroup(g){
+ const geos=new Set(),mats=new Set();
+ g.traverse(o=>{if(o.geometry&&o.geometry!==UNIT_CYL)geos.add(o.geometry);if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>mats.add(m));});
+ geos.forEach(x=>x.dispose());mats.forEach(m=>{if(m.map)m.map.dispose();m.dispose();});
+ while(g.children.length)g.remove(g.children[0]);
+}
+function label(text,color='#cfe8f5',scale=1){
+ const cv=document.createElement('canvas'),ctx=cv.getContext('2d'),font='600 40px "IBM Plex Sans Arabic", Arial';
+ ctx.font=font;const w=Math.ceil(ctx.measureText(text).width)+32;cv.width=w;cv.height=60;
+ ctx.font=font;ctx.fillStyle='rgba(8,17,28,.82)';ctx.fillRect(0,0,w,60);ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,w/2,32);
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),depthTest:false}));s.scale.set(w/60*.4*scale,.4*scale,1);s.renderOrder=10;return s;
+}
+
+/* ---------- Environment (terrain, PSR ice, rocks, boulder, stars, Earth) ---------- */
+let envKey='';
+function shadowXZ(x,z,h,ts){
+ if(p.sun<=0)return true;
+ const nearCrater=Math.abs(x-CR.x)<50&&Math.abs(z)<45,nearBoulder=Math.abs(x-BO.x)<20&&Math.abs(z)<6;
+ if(!nearCrater&&!nearBoulder)return false;
+ for(let d=1;d<70;d+=1)if(hardH(x-d,z)>h+.05+d*ts)return true;return false;
+}
+function buildEnvironment(){
+ clearGroup(envGroup);
+ const geo=new THREE.PlaneGeometry(250,140,375,190);geo.rotateX(-Math.PI/2);geo.translate(105,0,0);
+ const pos=geo.attributes.position,col=new Float32Array(pos.count*3),ts=Math.tan(p.sun*rad),cov=clamp(p.ice/7,0,.9);
+ const wallMax=CR.rf+p.depth/Math.tan(clamp(Math.min(p.entry,p.exit),2,75)*rad)+1;
+ for(let i=0;i<pos.count;i++){
+  const x=pos.getX(i),z=pos.getZ(i),h=ground(x,z);pos.setY(i,h);
+  const c=.42+fbm(x*.35,z*.35)*.2+fbm(x*3,z*3)*.07;let r=c,g=c*.985,b=c*.97;
+  if(shadowXZ(x,z,h,ts)){
+   r*=.42;g*=.46;b*=.55;
+   if(cov>0&&Math.hypot(x-CR.x,z)<wallMax){const ice=sstep(1-cov,1-cov+.12,vnoise(x*.4+3,z*.4));r+=(.55-r)*ice;g+=(.75-g)*ice;b+=(.96-b)*ice;}
+  }
+  col[i*3]=r;col[i*3+1]=g;col[i*3+2]=b;
+ }
+ geo.setAttribute('color',new THREE.BufferAttribute(col,3));geo.computeVertexNormals();
+ const terrain=mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0}),envGroup);terrain.castShadow=true;
+ const fg=new THREE.PlaneGeometry(1800,1800,120,120);fg.rotateX(-Math.PI/2);fg.translate(105,0,0);
+ const fp=fg.attributes.position;for(let i=0;i<fp.count;i++){const x=fp.getX(i),z=fp.getZ(i);fp.setY(i,x>-15&&x<225&&Math.abs(z)<65?-30:-.25+fbm(x*.01,z*.01)*6*sstep(150,400,Math.hypot(x-105,z)));}
+ fg.computeVertexNormals();const far=mesh(fg,mat(0x56575a,{roughness:1,metalness:0}),envGroup);far.castShadow=false;
+ const rnd=mulberry(80721);
+ const rocks=new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1,0),mat(0x6c6a66,{roughness:1,flatShading:true}),240);
+ const m4=new THREE.Matrix4(),q=new THREE.Quaternion(),eu=new THREE.Euler();let k=0;
+ while(k<240){const x=-15+rnd()*235,z=(rnd()-.5)*125;if(Math.abs(z)<5)continue;const s=.12+Math.pow(rnd(),3)*1.5;eu.set(rnd()*3,rnd()*3,rnd()*3);q.setFromEuler(eu);m4.compose(new THREE.Vector3(x,ground(x,z)+s*.25,z),q,new THREE.Vector3(s,s*.7,s*1.1));rocks.setMatrixAt(k++,m4);}
+ rocks.castShadow=rocks.receiveShadow=true;envGroup.add(rocks);
+ if(p.obstacle>0){
+  const R=BO.r+BO.e,pts=[];for(let i=28;i>=0;i--){const r=R*i/28;pts.push(new THREE.Vector2(Math.max(r,.001),boulderH(r)));}
+  const bg=new THREE.LatheGeometry(pts,40),bp=bg.attributes.position;
+  for(let i=0;i<bp.count;i++){const x=bp.getX(i),y=bp.getY(i),z=bp.getZ(i),n=fbm(x*1.8+9,z*1.8+y*1.8)*.1*Math.min(1,y/.3);bp.setXYZ(i,x*(1+n),y+n*.3,z*(1+n));}
+  bg.computeVertexNormals();mesh(bg,mat(0x77746f,{roughness:1,flatShading:true}),envGroup,BO.x,baseH(BO.x,0)-.02,0);
+ }
+ const n=3000,sp=new Float32Array(n*3);for(let i=0;i<n;i++){const u=rnd()*2-1,t=rnd()*Math.PI*2,s=Math.sqrt(1-u*u);sp[i*3]=1400*s*Math.cos(t)+100;sp[i*3+1]=1400*Math.abs(u)+10;sp[i*3+2]=1400*s*Math.sin(t);}
+ const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
+ envGroup.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:1.5,sizeAttenuation:false})));
+ const el=p.earth*rad,dir=new THREE.Vector3(Math.cos(el),Math.sin(el),-.3).normalize(),ep=dir.multiplyScalar(1000).add(new THREE.Vector3(100,0,0));
+ const earth=new THREE.Mesh(new THREE.SphereGeometry(17,32,16),new THREE.MeshBasicMaterial({color:0x4a7fd0}));earth.position.copy(ep);envGroup.add(earth);
+ const night=new THREE.Mesh(new THREE.SphereGeometry(17.4,32,16,0,Math.PI),new THREE.MeshBasicMaterial({color:0x020409,transparent:true,opacity:.78}));night.position.copy(ep);night.rotation.y=Math.PI*.6;envGroup.add(night);
+}
+
+/* ---------- Articulated LERSA lander, VIPER ghost, trails ---------- */
+let craft,rover,legParts=[],wheelParts=[],headLight,trail,predicted,landMark;
+function buildMission(){
+ clearGroup(missionGroup);legParts=[];wheelParts=[];
+ craft=new THREE.Group();missionGroup.add(craft);
+ const H=p.height,foil=mat(0xc99a2e,{roughness:.38,metalness:.55}),white=mat(0xdfe3e8,{roughness:.5}),dark=mat(0x2a2f37,{roughness:.6,metalness:.4}),steel=mat(0xa9b0ba,{roughness:.3,metalness:.85});
+ const copper=mat(0xcd7439,{emissive:0x57210b,emissiveIntensity:.25,metalness:.7});
+ const sleeve=p.titanium?mat(0xc7d4e0,{metalness:.8,roughness:.3,transparent:true,opacity:.5}):mat(0x22272e,{metalness:.2,roughness:.45,transparent:true,opacity:.55});
+ mesh(new THREE.CylinderGeometry(.5,.55,.5,6),foil,craft,0,H,0);
+ const cv=document.createElement('canvas');cv.width=cv.height=256;const cx=cv.getContext('2d');cx.fillStyle='#0d1f3c';cx.fillRect(0,0,256,256);cx.strokeStyle='#3d6aa8';cx.lineWidth=2;
+ for(let i=0;i<=256;i+=32){cx.beginPath();cx.moveTo(i,0);cx.lineTo(i,256);cx.stroke();cx.beginPath();cx.moveTo(0,i);cx.lineTo(256,i);cx.stroke();}
+ const solarM=new THREE.MeshStandardMaterial({map:new THREE.CanvasTexture(cv),roughness:.25,metalness:.6});
+ mesh(new THREE.CylinderGeometry(.51,.51,.025,6),solarM,craft,0,H+.26,0);
+ mesh(new THREE.BoxGeometry(.04,.62,.9),solarM.clone(),craft,-.62,H+.15,0);
+ mesh(new THREE.CylinderGeometry(.42,.48,.05,6),dark,craft,0,H-.27,0);
+ mesh(new THREE.CylinderGeometry(.018,.018,1.05,8),steel,craft,.22,H+.78,0);
+ mesh(new THREE.BoxGeometry(.18,.1,.24),white,craft,.25,H+1.3,0);
+ const lens=mesh(new THREE.CylinderGeometry(.035,.035,.04,16),dark,craft,.35,H+1.3,.06);lens.rotation.z=Math.PI/2;
+ const dish=mesh(new THREE.SphereGeometry(.16,20,8,0,Math.PI*2,0,Math.PI/3.2),white,craft,-.25,H+.55,.2);dish.rotation.set(-.5,0,.6);
+ const rwm=mat(0xf0883e,{roughness:.4,metalness:.5});
+ [[[0,0,Math.PI/2],[-.1,H+.05,-.3]],[[0,0,0],[0,H+.05,0]],[[Math.PI/2,0,0],[-.28,H+.05,-.05]]].forEach(([r,ps])=>{
+  const hub=new THREE.Group();hub.position.set(...ps);hub.rotation.set(...r);craft.add(hub);
+  const w=mesh(new THREE.CylinderGeometry(.09,.09,.035,20),rwm,hub);mesh(new THREE.BoxGeometry(.12,.04,.015),dark,w,.03,0,0);wheelParts.push(w);
+ });
+ mesh(new THREE.BoxGeometry(.1,.06,.1),dark,craft,.15,H+.05,-.28);
+ const padT=.04,pr=p.pad/2;
+ const padGeo=new THREE.LatheGeometry([new THREE.Vector2(.001,.016),new THREE.Vector2(pr*.55,.005),new THREE.Vector2(pr,0),new THREE.Vector2(pr,padT*.7),new THREE.Vector2(pr*.92,padT),new THREE.Vector2(.001,padT)],28);
+ for(let i=0;i<p.legs;i++){
+  const phi=2*Math.PI*i/p.legs+Math.PI/p.legs,c=Math.cos(phi),s=Math.sin(phi);
+  const A=new THREE.Vector3(c*.42,H-.2,s*.42),F0=new THREE.Vector3(c*p.radius,padT,s*p.radius),len0=A.distanceTo(F0);
+  const strut=mesh(UNIT_CYL,white,craft),rod=mesh(UNIT_CYL,steel,craft);
+  const housing=new THREE.Group();craft.add(housing);const Lh=.45*len0;
+  mesh(new THREE.CylinderGeometry(.075,.075,Lh,16,1,true),sleeve,housing,0,Lh/2,0);
+  mesh(new THREE.CylinderGeometry(.055,.055,Lh*.92,14),copper,housing,0,Lh/2,0);
+  for(let b=0;b<5;b++){const band=mesh(new THREE.TorusGeometry(.078,.012,6,18),copper,housing,0,Lh*(.12+b*.19),0);band.rotation.x=Math.PI/2;}
+  mesh(new THREE.CylinderGeometry(.085,.085,.03,16),steel,housing,0,0,0);
+  mesh(new THREE.CylinderGeometry(.08,.08,.03,16),steel,housing,0,Lh,0);
+  const pad=mesh(padGeo,dark,craft);
+  legParts.push({c,s,A,len0,Lh,strut,rod,housing,pad,padT,coilMat:copper});
+ }
+ poseLegs(0,[]);
+ headLight=new THREE.SpotLight(0xdbe8ff,0,30,.55,.6,1.2);headLight.position.set(.35,H+1.3,0);headLight.target.position.set(6,-1,0);craft.add(headLight,headLight.target);
+ rover=new THREE.Group();missionGroup.add(rover);
+ const rm=mat(0xd8dce2,{transparent:true,opacity:.7});
+ mesh(new THREE.BoxGeometry(1.4,.4,.95),rm,rover,0,.62,0);mesh(new THREE.CylinderGeometry(.03,.03,.7,6),steel,rover,.45,1.15,0);mesh(new THREE.BoxGeometry(.16,.12,.34),dark,rover,.47,1.5,0);
+ rover.wheels=[];for(const [x,z] of [[-.5,.55],[.5,.55],[-.5,-.55],[.5,-.55]]){const w=mesh(new THREE.CylinderGeometry(.25,.25,.16,16),dark,rover,x,.25,z);w.rotation.x=Math.PI/2;rover.wheels.push(w);}
+ const viperLbl=label('VIPER','#cfe8f5',.8);viperLbl.position.set(0,2,0);rover.add(viperLbl);
+ const tg=new THREE.BufferGeometry();tg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(2400*3),3));tg.setDrawRange(0,0);
+ trail=new THREE.Line(tg,new THREE.LineBasicMaterial({color:0x69efb4}));trail.frustumCulled=false;missionGroup.add(trail);
+ predicted=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineDashedMaterial({color:0x58a6ff,dashSize:.4,gapSize:.25}));predicted.frustumCulled=false;missionGroup.add(predicted);
+ landMark=new THREE.Mesh(new THREE.RingGeometry(.45,.62,32),new THREE.MeshBasicMaterial({color:0x58a6ff,side:THREE.DoubleSide,transparent:true,opacity:.85}));landMark.rotation.x=-Math.PI/2;missionGroup.add(landMark);
+}
+const tmpU=new THREE.Vector3(),tmpH0=new THREE.Vector3(),tmpH1=new THREE.Vector3(),tmpF=new THREE.Vector3();
+function poseLegs(comp,offsets){
+ legParts.forEach((l,i)=>{
+  tmpF.set(l.c*p.radius,l.padT+comp+(offsets[i]||0),l.s*p.radius);
+  tmpU.subVectors(tmpF,l.A).normalize();
+  tmpH0.copy(l.A).addScaledVector(tmpU,.15*l.len0);
+  tmpH1.copy(tmpH0).addScaledVector(tmpU,l.Lh);
+  orientUnit(l.strut,l.A,tmpH0,.03);
+  l.housing.position.copy(tmpH0);l.housing.quaternion.setFromUnitVectors(UP,tmpU);
+  const rodEnd=tmpF.clone();if(rodEnd.distanceTo(tmpH1)<.02||new THREE.Vector3().subVectors(rodEnd,tmpH1).dot(tmpU)<.02)rodEnd.copy(tmpH1).addScaledVector(tmpU,.02);
+  orientUnit(l.rod,tmpH1,rodEnd,.022);
+  l.pad.position.set(tmpF.x,tmpF.y-l.padT,tmpF.z);
+ });
+}
+
+/* ---------- Tab 2: LERSA cross-section ---------- */
+let piston,coils=[],busA=[],busB=[],shuntBox,magnetMeshes=[];
+const pathA=[[.9,2.6],[1.9,2.6],[1.9,4],[2.45,4],[1.9,4],[1.9,2.4],[2.45,2.4]],pathB=[[.9,1.8],[1.5,1.8],[1.5,.8],[2.45,.8]];
+function along(path,f){let L=0;const seg=[];for(let i=1;i<path.length;i++){const d=Math.hypot(path[i][0]-path[i-1][0],path[i][1]-path[i-1][1]);seg.push(d);L+=d;}
+ let s=f*L;for(let i=0;i<seg.length;i++){if(s<=seg[i]){const t=s/seg[i];return [path[i][0]+(path[i+1][0]-path[i][0])*t,path[i][1]+(path[i+1][1]-path[i][1])*t];}s-=seg[i];}return path[path.length-1];}
+function buildCut(){
+ clearGroup(cutGroup);coils=[];busA=[];busB=[];magnetMeshes=[];
+ mesh(new THREE.CylinderGeometry(.85,.85,5,32,1,true),mat(p.titanium?0xc7d4e0:0x506675,{transparent:true,opacity:.16,side:THREE.DoubleSide}),cutGroup,0,2.5,0);
+ for(let i=0;i<11;i++){const c=mesh(new THREE.TorusGeometry(.65,.115,10,32),mat(0xd4853f,{emissive:0xc2501a,emissiveIntensity:.1}),cutGroup,0,.4+i*.4,0);c.rotation.x=Math.PI/2;coils.push(c);}
+ piston=new THREE.Group();cutGroup.add(piston);
+ mesh(new THREE.CylinderGeometry(.23,.23,6,20),mat(0xb7d0e0,{metalness:.8}),piston,0,3,0);
+ for(let i=0;i<12;i++){const col=p.halbach?[0xe76363,0xf0a35e,0x4b9fe5,0x7fd3a5][i%4]:(i%2?0xe76363:0x4b9fe5);magnetMeshes.push(mesh(new THREE.CylinderGeometry(.42,.42,.22,16),mat(col),piston,0,1+i*.26,0));}
+ for(let i=0;i<12;i++){const pts=[],a=i/12*Math.PI*2;for(let j=0;j<=40;j++){const t=j/40*Math.PI*2,r=.9+.45*Math.sin(t);pts.push(new THREE.Vector3(Math.cos(a)*r,2.5+2*Math.cos(t),Math.sin(a)*r));}
+  cutGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0x6adcf0,transparent:true,opacity:.25})));}
+ const boxes=[[4,0x328f9c,tr('مكثفات فائقة','Supercapacitor buffer')],[2.4,0x49734a,tr('ناقل بطارية الليثيوم','Li-ion battery bus')],[.8,0x9b562b,tr('مقاومات تبديد خزفية','Ceramic thermal shunt')]];
+ boxes.forEach(([y,c,t],i)=>{const b=mesh(new THREE.BoxGeometry(1.1,1,.75),mat(c,{emissive:i===2?0xff5a1a:0x000000,emissiveIntensity:0}),cutGroup,3,y,0);if(i===2)shuntBox=b;
+  const l=label(t,'#e6eff8',.8);l.position.set(3,y+.85,0);cutGroup.add(l);});
+ const lineMat=new THREE.LineBasicMaterial({color:0x70cbe4}),lineMat2=new THREE.LineBasicMaterial({color:0xffa060});
+ cutGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pathA.map(q=>new THREE.Vector3(q[0],q[1],.3))),lineMat));
+ cutGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pathB.map(q=>new THREE.Vector3(q[0],q[1],.3))),lineMat2));
+ for(let i=0;i<18;i++)busA.push(mesh(new THREE.SphereGeometry(.05,8,6),mat(0x8fffc1,{emissive:0x5aff9e}),cutGroup));
+ for(let i=0;i<12;i++)busB.push(mesh(new THREE.SphereGeometry(.05,8,6),mat(0xffb070,{emissive:0xff7a2a}),cutGroup));
+ const l1=label(tr(p.halbach?'مصفوفة هالباخ Sm₂Co₁₇':'مغناطيسات Sm₂Co₁₇ متناوبة',p.halbach?'Sm₂Co₁₇ Halbach array':'Sm₂Co₁₇ alternating magnets'),'#ffd38a',.8);l1.position.set(-1.8,4.2,0);cutGroup.add(l1);
+ const l2=label(tr('11 ملفًا نحاسيًا (الجزء الثابت)','11 copper stator coils'),'#ffb37a',.8);l2.position.set(-1.8,.6,0);cutGroup.add(l2);
+}
+/* ---------- Tab 3: 4-way damper benchmark ---------- */
+let comparePistons=[];
+function buildComparison(){
+ clearGroup(comparisonGroup);comparePistons=[];
+ const colors=[0x66e5c0,0xffb266,0xc293ff,0x84a4bb],names=[['LERSA','LERSA'],['نابض حلزوني','Helical spring'],['مخمد سقاطة','Ratchet damper'],['قرص عسل قابل للسحق','Crushable honeycomb']];
+ for(let i=0;i<4;i++){
+  const g=new THREE.Group();g.position.x=(i-1.5)*2.8;comparisonGroup.add(g);
+  mesh(new THREE.BoxGeometry(2,.15,1.5),mat(0x334758),g);
+  const mv=new THREE.Group();g.add(mv);comparePistons.push(mv);
+  mesh(new THREE.BoxGeometry(1.3,.5,1),mat(colors[i]),mv,0,3,0);mesh(new THREE.CylinderGeometry(.09,.09,2.7,12),mat(0xcedae3),mv,0,1.7,0);
+  if(i===0)for(let j=0;j<8;j++){const c=mesh(new THREE.TorusGeometry(.4,.09,8,24),mat(0xc98244),g,0,.5+j*.25,0);c.rotation.x=Math.PI/2;}
+  if(i===1){const pts=[];for(let j=0;j<160;j++){const a=j*.35;pts.push(new THREE.Vector3(.4*Math.cos(a),.3+j/80,.4*Math.sin(a)));}mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),160,.045,6,false),mat(colors[i]),g);}
+  if(i===2)for(let j=0;j<9;j++)mesh(new THREE.BoxGeometry(.5,.1,.3),mat(colors[i]),g,.25,.4+j*.23,0);
+  if(i===3)for(let j=0;j<12;j++)mesh(new THREE.CylinderGeometry(.23,.23,.5,6,1,true),mat(colors[i],{side:THREE.DoubleSide}),g,(j%3-1)*.45,.4+Math.floor(j/3)*.5,0);
+  const l=label(tr(...names[i]),i===0?'#8fffc1':'#cfe8f5',.75);l.position.set(0,4,0);g.add(l);
+ }
+}
+
+/* ===================== CHARTS ===================== */
+Chart.defaults.color='#98adc3';Chart.defaults.borderColor='#294058';
+const energyChart=new Chart($('energyChart'),{type:'bar',data:{labels:[],datasets:[]},options:{responsive:true,maintainAspectRatio:false,animation:false,locale:'en-US',plugins:{legend:{rtl:false,labels:{boxWidth:9,font:{size:10}}},title:{display:true,text:'Energy per Hop [J]'}},scales:{x:{ticks:{font:{size:10}}}}}});
+const gChart=new Chart($('gChart'),{type:'line',data:{datasets:[]},options:{responsive:true,maintainAspectRatio:false,animation:false,parsing:false,locale:'en-US',plugins:{legend:{rtl:false,labels:{boxWidth:9,font:{size:10}}},title:{display:true,text:'Landing G(t) [Earth g₀]'}},scales:{x:{type:'linear',title:{display:true,text:'t [s]'}},y:{beginAtZero:true}},elements:{point:{radius:0}}}});
+let chartHop=null;
+function updateCharts(){
+ energyChart.data.labels=hopData.map(h=>String(h.h));
+ energyChart.data.datasets=[[tr('الارتطام','Impact'),'impact','#c199f1'],[tr('مسترجعة','Recovered'),'recovered','#65dfab'],[tr('سحب البطارية','Battery draw'),'used','#73b9fa'],[tr('تبديد حراري','Thermal shunt'),'shunt','#ffac62']]
+  .map(a=>({label:a[0],data:hopData.map(h=>h[a[1]]),backgroundColor:a[2]}));
+ energyChart.update();setGSeries(hopData[0]);
+}
+function setGSeries(h){
+ const s=h?h.series:[{x:0,y:0}],end=h?Math.max(h.dampingDuration,.01):1;
+ gChart.data.datasets=[{label:'LERSA',data:s,borderColor:'#65dfab',borderWidth:2,segment:{borderColor:c=>c.p1.parsed.y>p.glimit?'#ff6e79':'#65dfab'}},{label:'G limit',data:[{x:0,y:p.glimit},{x:end,y:p.glimit}],borderColor:'#ff6e79',borderDash:[5,5],borderWidth:1}];
+ gChart.update();chartHop=h?h.h:null;
+}
+
+/* ===================== UI: telemetry, notes, blueprint, table ===================== */
+function toast(msg,type=''){const e=document.createElement('div');e.className='toast '+type;e.textContent=msg;$('toasts').append(e);setTimeout(()=>e.remove(),4300);}
+function snapshot(){if(!samples.length)return null;let lo=0,hi=samples.length-1;while(lo<hi){const m=Math.ceil((lo+hi)/2);if(samples[m].t<=time)lo=m;else hi=m-1;}return {s:samples[lo],index:lo};}
+function currentHop(s){return hopData.find(h=>s.t>=h.startT&&s.t<=h.endT)||hopData.find(h=>h.h===s.hop)||hopData[0];}
+function prediction(s){
+ const hop=currentHop(s);if(!hop)return;
+ const pts=samples.filter(a=>a.t>=hop.startT&&a.t<=hop.startT+hop.flightT+.02&&a.phase<3).filter((a,i)=>i%4===0).map(a=>new THREE.Vector3(a.x,a.y+p.height,0));
+ pts.push(new THREE.Vector3(hop.x,pathH(hop.x)+p.height,0));
+ if(pts.length<2)return;
+ predicted.geometry.dispose();predicted.geometry=new THREE.BufferGeometry().setFromPoints(pts);predicted.computeLineDistances();
+ landMark.position.set(hop.x,pathH(hop.x)+.07,0);
+}
+function liveDerived(s){
+ const sh=shadow(s.x),amb=ambient(s.x),sol=s.phase>=3?solarPower(s.x,s.ls):solarPower(s.x,0),dte=dteAt(s.x,s.y);
+ const preq=thermalLoad(s.x),drain=p.avionics+preq+(p.lock?0:1.5)-sol;
+ const hours=drain>0?(s.battery+s.cap)/drain/3600:Infinity;
+ return {sh,amb,sol,dte,preq,drain,hours};
+}
+function updateSiteCard(s,d){
+ const S=NASA_LUNAR_SITES[siteId];
+ const th=d.hours>=24?'good':d.hours>=4?'warn':'danger';
+ $('siteCard').innerHTML=`
+ <div class="metric full"><span>${tr('الموقع','Site')}</span><b>${S?tr(S.name_ar,S.name_en):tr('مخصص / بارامتري','Custom / Parametric')}</b></div>
+ <div class="metric"><span>${tr('الإحداثيات','Coordinates')}</span><b><bdi>${S?S.coords:'—'}</bdi></b></div>
+ <div class="metric"><span>${tr('جليد الماء','Water ice')}</span><b><bdi>${fmt(p.ice,1)} wt%</bdi></b></div>
+ <div class="metric"><span>${tr('القدرة الشمسية','Solar power')}</span><b class="${d.sol>0?'good':'warn'}"><bdi>${fmt(d.sol,1)} W</bdi></b></div>
+ <div class="metric"><span>${tr('المنطقة','Zone')}</span><b class="${d.sh?'warn':'good'}"><bdi>${d.sh?'PSR / SHADOW':'SUNLIT'} · ${fmt(d.amb,0)} K</bdi></b></div>
+ <div class="metric full"><span>DTE</span><b class="${d.dte?'good':'warn'}"><bdi>${d.dte?'DTE LINK ACTIVE':'OCCLUDED BY CRATER RIM — RELAY REQ.'}</bdi></b></div>
+ <div class="metric full"><span>${tr('هامش البقاء الحراري (هدف > −20°C)','Thermal survival margin (> −20 °C target)')}</span><b class="${th}"><bdi>${tr('سخان','Heater')} ${fmt(d.preq,1)} W · ${tr('مخزون التبديد','Shunt bank')} ${fmt(s.store,0)} J · ${tr('بقاء','Survival')} ${fmt(d.hours,1)} h</bdi></b></div>`;
+}
+function updateUI(s){
+ const el=electrical(),h=currentHop(s),d=liveDerived(s);
+ const angle=h?h.angle:p.angle*rad,range=p.velocity**2*Math.sin(2*angle)/p.gravity,height=p.velocity**2*Math.sin(angle)**2/(2*p.gravity);
+ const critical=s.failed||(h&&s.phase>=3&&(h.peak>p.glimit||h.pressure>p.pressure));
+ const warning=Math.abs(s.error)>20||s.battery<p.battery*.1||!d.dte;
+ const useful=Math.max(0,s.reg-s.shunt-s.unrouted),saved=s.used+useful>0?100*useful/(s.used+useful):0;
+ const rpm=s.momentum/p.inertia*60/(2*Math.PI);
+ updateSiteCard(s,d);
+ const values=[['v',s.speed,'m/s'],['R ref',range,'m'],['H ref',height,'m'],['TOF',h?h.flightT:0,'s'],['E_k',.5*p.mass*p.velocity**2,'J'],
+  ['R_int(T)',el.R,'Ω'],['k_em',el.k,'N/A'],['c_em',el.c,'N·s/m'],['G_peak',h?h.peak:0,'g₀'],['G_avg',h?h.avg:0,'g₀'],
+  ['E_impact',h?h.impact:0,'J'],['E_reg',h?h.recovered:0,'J'],['E_shunt',h?h.shunt:0,'J'],['E_heater',h?h.heater:0,'J'],['E_solar',h?h.solar:0,'J'],['E_net*',h?h.net:0,'J'],
+  [tr('ضغط التلامس','Contact pressure'),h?h.pressure:0,'kPa'],['x integrated',h?h.compression:0,'m'],['x ideal = mv/c',h?h.required:0,'m'],['Pad Ø req.',h?h.diameter:0,'m'],
+  [tr('توفير تقريبي','Approx. saving'),saved,'%'],[tr('المسافة','Distance'),s.x,'m'],[tr('سرعة المهمة','Mission speed'),s.t?s.x/s.t:0,'m/s'],[tr('القفزات','Hops'),s.hop,'']];
+ $('metrics').innerHTML=values.map(a=>`<div class="metric"><span>${a[0]}</span><b><bdi>${fmt(a[1],a[0]==='c_em'||a[0]==='k_em'?0:2)} ${a[2]}</bdi></b></div>`).join('');
+ const status=critical?['danger',tr('حرج','Critical')]:warning?['warn',tr('تحذير','Warning')]:['good',tr('آمن ضمن النموذج','Model-safe')];
+ $('hud').innerHTML=`<strong>LERSA · ${tr(...phases[s.phase])}</strong> <span class="badge ${status[0]}">${status[1]}</span>
+ <div class="values">
+ <span>${tr('المسافة','Distance')} <bdi>${fmt(s.x)} m</bdi></span><span>${tr('الارتفاع','Clearance')} <bdi>${fmt(Math.max(0,s.y-pathH(s.x)))} m</bdi></span>
+ <span>${tr('السرعة','Speed')} <bdi>${fmt(s.speed)} m/s</bdi></span><span>${tr('خطأ الاتجاه','Attitude')} <bdi>${fmt(s.error,1)}°</bdi></span>
+ <span>${tr('القفزة','Hop')} <bdi>${s.hop}/${p.hops}</bdi></span><span><bdi>${fmt(d.amb,0)} K</bdi> ${d.sh?'PSR':''}</span>
+ <span>${tr('البطارية','Battery')} <bdi>${fmt(s.battery/1000,1)} kJ</bdi></span><span>${tr('المكثفات','Supercap')} <bdi>${fmt(s.cap,0)} J</bdi></span>
+ <span>${tr('المسترجع','Recovered')} <bdi>${fmt(s.reg,0)} J</bdi></span><span>RW <bdi>${fmt(rpm,0)} rpm</bdi></span>
+ <span>${tr('شمسي','Solar')} <bdi>${fmt(d.sol,1)} W</bdi></span><span>DTE <bdi class="${d.dte?'good':'warn'}">${d.dte?'ACTIVE':'OCCLUDED'}</bdi></span>
+ </div>${p.viper?`VIPER: <bdi>${fmt(s.roverX)} m</bdi> · ${s.roverStopped?tr('متوقف: ميل > 20° أو عائق > 0.25 m','Stalled: slope > 20° or step > 0.25 m'):tr('يتحرك 0.2 m/s','Moving 0.2 m/s')}`:''}`;
+ $('pills').innerHTML=`<span class="pill">${tr(...phases[s.phase])}</span><span class="pill">${fmt(s.speed,1)} m/s</span><span class="pill" style="color:${h&&h.peak>p.glimit?'#ff6e79':'#6ee7aa'}">G ${fmt(h?h.peak:0,1)}</span><span class="pill">E_reg ${fmt(s.reg,0)} J</span><span class="pill" style="color:${d.dte?'#6ee7aa':'#ffbe69'}">${d.sh?'PSR':'SUN'} · ${d.dte?'DTE':'NO DTE'}</span>`;
+ const notes=[],add=(a,b,t='')=>notes.push(`<div class="note ${t}">${tr(a,b)}</div>`);
+ add('النتائج للقفزة الحالية المحسوبة مسبقًا بخطوة 1/240 ثانية؛ الشريط الزمني قابل للعكس.','Results show the current precomputed hop (1/240 s); the timeline is reversible.');
+ if(s.failed||missionFail){const m={battery:['نفدت البطارية قبل الإطلاق.','Battery depleted before launch.'],endstop:['اصطدام نهاية الشوط: توقف المهمة.','End-stop collision: mission halted.'],tip:['خطأ اتجاه > 55°: انقلاب.','Attitude error > 55°: tip-over.'],slope:['هبوط على ميل > 60°.','Landing on slope > 60°.'],stuck:['تقدم شبه معدوم: المركبة عالقة على الجدار. فعّل الزاوية التلقائية أو ارفع السرعة.','Negligible progress: stuck on the wall. Enable auto angle or raise launch speed.'],nocontact:['لم يحدث تماس خلال 45 ث.','No contact within 45 s.']}[missionFail];if(m)add(m[0],m[1],'danger');}
+ if(p.temperature<-100)add('حرارة الملف خارج مجال صلاحية القانون الخطي؛ تُستخدم قيمة −100°C مع أرضية 0.2·R₀.','Coil temperature is outside the linear-law validity; −100 °C with a 0.2·R₀ floor is used.','warn');
+ if(height<p.obstacle+.3)add('ارتفاع القفزة المرجعي غير كافٍ لتجاوز الصخرة؛ ارفع السرعة أو الزاوية.','Reference hop height is insufficient for the boulder: raise speed or angle.','warn');
+ if(h&&h.pressure>p.pressure)add('ضغط التربة يتجاوز حد التحمل؛ كبّر الوسادات أو زد الأرجل أو خفّض معامل الخمود.','Soil pressure exceeds bearing limit: enlarge pads, add legs, or lower damping.','danger');
+ if(h&&h.peak>p.glimit)add('ذروة التباطؤ تتجاوز الحد. في الخمود اللزج الذروة ≈ c·v/m؛ خفّض c_em (لفات أقل أو حمل أعلى) مع شوط كافٍ.','Peak deceleration exceeds the limit. Viscous peak ≈ c·v/m; reduce c_em (fewer turns or higher load) with enough stroke.','danger');
+ if(h&&h.required>p.stroke)add('الشوط المثالي mv/c أكبر من الشوط المتاح؛ يعتمد الهبوط على الكبح النشط.','Ideal stroke mv/c exceeds available stroke; landing relies on active braking.','warn');
+ if(h&&h.impact>.5*p.mass*p.velocity**2*1.02)add('طاقة الارتطام أكبر من طاقة الإطلاق بسبب النزول في الفوهة؛ هذه حالة التصميم الحرجة.','Impact energy exceeds launch energy due to crater descent; this is the critical design case.','warn');
+ if(h&&h.unrouted>0)add('فائض نبضي يتجاوز المكثفات والبطارية ومقاومات التبديد؛ يتبدد في الملف/المحوّل.','Pulse overflow exceeds supercap, battery and shunt capacity; it is dissipated in coil/converter.','danger');
+ if(d.sh)add('داخل الظل: قدرة شمسية 0 W، المصباح والسخانات من الطاقة المخزنة ومن بنك حرارة التبديد.','In shadow: 0 W solar; lamp and heaters run from stored energy and the shunt heat bank.','warn');
+ if(!d.dte)add('لا خط رؤية مباشر للأرض؛ يلزم مُرحّل اتصالات (مداري أو على الحافة).','No direct-to-Earth line of sight; an orbital or rim relay is required.','warn');
+ if(!p.rw)add('عجلات رد الفعل معطلة؛ يزداد خطر الانقلاب.','Reaction wheels disabled: tip risk increases.','warn');
+ if(p.lock)add('القفل السلبي يلغي قدرة التثبيت أثناء السكون؛ زخم العجلات يُفرّغ عبر عزم تماس الأقدام.','Passive latch removes holding power; wheel momentum unloads through foot contact torque.');
+ add('صافي الطاقة لا يشمل طاقة الإطلاق (≈ ½mv²/0.8)، بينما يشملها سحب البطارية.','Net energy excludes launch energy (≈ ½mv²/0.8); battery draw includes it.');
+ $('notes').innerHTML=notes.join('');
+ const fw=legParts.map(l=>Math.max(.1,1+(p.independent?.4:2)*Math.sin(s.ls)*l.c)),tw=fw.reduce((a,b)=>a+b,0)||1;
+ $('footLoads').textContent=fw.map((w,i)=>`F${i+1}: ${fmt((s.force+p.mass*p.gravity)*w/tw,1)} N`).join(' · ');
+ table(h,d);
+ $('clock').textContent=`${fmt(time)} / ${fmt(endTime)} s`;$('timeline').value=time;
+ $('play').textContent=playing?tr('إيقاف مؤقت','Pause'):tr('تشغيل','Play');
+ $('caption').textContent=tab===0?tr('أخضر: الأثر الفعلي · أزرق: المسار المتوقع وحلقة الهبوط · الأزرق الفاتح في الظل: جليد الماء · المرجع: VIPER 0.2 m/s','Green: actual trail · Blue: predicted path & landing ring · Cyan in shadow: water ice · Reference: VIPER 0.2 m/s'):tab===1?tr('الارتطام ← المولد الخطي ← المسار 1: مكثفات ← بطارية · المسار 2: مقاومات تبديد خزفية · الأحمر: كبح نشط آخر 10%','Impact → linear generator → Path 1: supercap → battery · Path 2: ceramic thermal shunt · Red: active braking in final 10%'):tr('LERSA مقابل نابض وسقاطة وقرص عسل · حركة التقليدية توضيحية؛ LERSA من التكامل','LERSA vs spring, ratchet, honeycomb · Conventional motion is illustrative; LERSA is integrated');
+ $('compareOverlay').style.display=tab===2?'block':'none';
+ $('compareOverlay').innerHTML=h?`LERSA: <bdi>${fmt(h.peak)} g₀</bdi><br>${tr('الشوط','Stroke')}: <bdi>${fmt(h.compression)} m</bdi><br>${tr('الاسترجاع','Recovery')}: <bdi>${fmt(h.recovered)} J (${fmt(100*h.recovered/h.impact,1)}%)</bdi><br>${tr('نابض مكافئ: ذروة ≈ 2× المتوسط مع ارتداد.','Equivalent spring: peak ≈ 2× average with rebound.')}`:'';
+ if(h&&chartHop!==h.h)setGSeries(h);
+}
+function table(h,d){
+ const vs=0.2,ms=endTime>0&&hopData.length?hopData[hopData.length-1].x/endTime:0;
+ const springPeak=h?2*h.impactSpeed**2/(2*p.stroke)/G0:NaN;
+ const rows=[
+  [tr('السرعة المتوسطة','Mean traverse speed'),`${fmt(vs)} m/s`,`${fmt(ms)} m/s`,tr('تشمل التوقف والشحن','Includes dwell')],
+  [tr('أقصى ميل','Max slope'),'20°',`${fmt(p.exit,0)}° ${tr('(جدار الخروج)','(exit wall)')}`,tr('العبور يتحدد بالمحاكاة','Traversal is simulated, not guaranteed')],
+  [tr('تجاوز العوائق','Obstacle clearance'),'0.25 m',`${fmt(p.velocity**2*Math.sin((h?h.angle:p.angle*rad))**2/(2*p.gravity))} m`,'H = v0²sin²θ/2g'],
+  [tr('استرجاع الطاقة','Energy recovery'),tr('نابض/سقاطة/قرص: 0% كهربائي','Spring/ratchet/honeycomb: 0% electrical'),h?`${fmt(h.recovered)} J (${fmt(100*h.recovered/h.impact,1)}%)`:'—',tr('تكامل η·I²·R_load','Integrated η·I²·R_load')],
+  [tr('البقاء في الظل','PSR thermal survival'),tr('بطارية فقط','Battery only'),`${fmt(d.hours,1)} h`,tr('+ بنك حرارة التبديد','+ shunt heat bank')],
+  [tr('إعادة الاستخدام','Reuse'),tr('نابض: نعم؛ سقاطة: إعادة ضبط؛ قرص: لا','Spring: yes; ratchet: reset; honeycomb: no'),tr('نعم*','Yes*'),tr('*دون اصطدام نهاية الشوط','*Without end-stop impact')],
+  [tr('الارتداد','Rebound'),tr('نابض: عالٍ','Spring: high'),tr('منخفض + قفل','Low + latch'),tr('لا نابض رئيسي','No primary spring')],
+  [tr('ذروة g','Peak g'),`${fmt(springPeak,1)} g₀ ${tr('(نابض مكافئ)','(equiv. spring)')}`,h?`${fmt(h.peak,1)} g₀`:'—',tr('نفس الشوط','Same stroke')]
+ ];
+ $('comparison').innerHTML=`<thead><tr>${[tr('المعيار','Criterion'),tr('VIPER / تقليدي','VIPER / conventional'),'LERSA',tr('تعليق','Comment')].map(v=>`<th>${v}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>`<td>${v}</td>`).join('')}</tr>`).join('')}</tbody>`;
+}
+function drawDimensions(){
+ const sc=Math.min(110,150/(p.radius+p.pad/2+.2),170/(p.height+1.5)),ox=200,gy=255,X=v=>ox+v*sc,Y=v=>gy-v*sc;
+ const H=p.height,padT=.04,pr=p.pad/2,ay=H-.2,mast=H+1.35;
+ const splay=Math.atan2(p.radius-.42,ay-padT)/rad;
+ let s=`<defs><marker id="arr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8093a9"/></marker></defs>`;
+ s+=`<line x1="10" y1="${gy}" x2="390" y2="${gy}" stroke="#3a4658" stroke-width="1.5"/>`;
+ for(const sg of [-1,1]){
+  const ax=X(sg*.42),ayp=Y(ay),fx=X(sg*p.radius),fy=Y(padT),lx=fx-ax,ly=fy-ayp;
+  const P=t=>[ax+lx*t,ayp+ly*t];
+  const [h0x,h0y]=P(.15),[h1x,h1y]=P(.6);
+  s+=`<line x1="${ax}" y1="${ayp}" x2="${h0x}" y2="${h0y}" stroke="#dfe3e8" stroke-width="3"/>`;
+  s+=`<line x1="${h0x}" y1="${h0y}" x2="${h1x}" y2="${h1y}" stroke="${p.titanium?'#c7d4e0':'#3a4350'}" stroke-width="11" stroke-linecap="round"/>`;
+  s+=`<line x1="${h0x}" y1="${h0y}" x2="${h1x}" y2="${h1y}" stroke="#cd7439" stroke-width="6"/>`;
+  for(let b=0;b<5;b++){const [bx,by]=P(.15+.45*(.12+b*.19));s+=`<circle cx="${bx}" cy="${by}" r="5.5" fill="none" stroke="#e8964f" stroke-width="1.5"/>`;}
+  s+=`<line x1="${h1x}" y1="${h1y}" x2="${fx}" y2="${fy}" stroke="#a9b0ba" stroke-width="2.5"/>`;
+  s+=`<path d="M${fx-pr*sc} ${gy}Q${fx} ${gy-6} ${fx+pr*sc} ${gy}L${fx+pr*sc*.92} ${Y(padT)}L${fx-pr*sc*.92} ${Y(padT)}Z" fill="#2a2f37" stroke="#8c97a8"/>`;
+ }
+ s+=`<rect x="${X(-.5)}" y="${Y(H+.25)}" width="${sc}" height="${.5*sc}" fill="#c99a2e" opacity=".9"/>`;
+ s+=`<rect x="${X(-.51)}" y="${Y(H+.25)-3}" width="${1.02*sc}" height="4" fill="#3d6aa8"/>`;
+ s+=`<rect x="${X(-.64)}" y="${Y(H+.46)}" width="5" height="${.62*sc}" fill="#3d6aa8"/>`;
+ s+=`<line x1="${X(.22)}" y1="${Y(H+.25)}" x2="${X(.22)}" y2="${Y(mast-.05)}" stroke="#a9b0ba" stroke-width="2"/><rect x="${X(.16)}" y="${Y(mast)}" width="${.18*sc}" height="${.1*sc}" fill="#dfe3e8"/>`;
+ [[-.1],[0],[-.28]].forEach((q,i)=>s+=`<circle cx="${X(q[0])}" cy="${Y(H+.05)}" r="${4+i}" fill="#f0883e" opacity=".85"/>`);
+ const dim=(x1,y1,x2,y2,t,tx,ty)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#8093a9" marker-start="url(#arr)" marker-end="url(#arr)"/><text x="${tx}" y="${ty}" fill="#cdd5df" font-size="10" font-family="JetBrains Mono,monospace" text-anchor="middle">${t}</text>`;
+ const W=2*(p.radius+pr);
+ s+=dim(X(-p.radius-pr),gy+16,X(p.radius+pr),gy+16,`W ${fmt(W)} m`,ox,gy+30);
+ s+=dim(X(p.radius+pr)+18,Y(0),X(p.radius+pr)+18,Y(mast),`H ${fmt(mast)} m`,Math.min(370,X(p.radius+pr)+18),Y(mast)-6);
+ s+=dim(X(-p.radius)-26,Y(padT),X(-p.radius)-26,Y(padT)-p.stroke*sc,`x ${fmt(p.stroke)} m`,X(-p.radius)-26,Y(padT)-p.stroke*sc-6);
+ s+=`<text x="${X(p.radius)}" y="${gy-14}" fill="#e3b341" font-size="10" text-anchor="middle" font-family="JetBrains Mono,monospace">Ø${fmt(p.pad)} m</text>`;
+ s+=`<text x="200" y="16" fill="#bdd6e5" font-size="10" text-anchor="middle" font-family="JetBrains Mono,monospace">LERSA · ${p.legs} legs · splay ${fmt(splay,1)}° · ${p.mass} kg · no springs</text>`;
+ s+=`<text x="${X(0)}" y="${Y(H)+3}" fill="#101820" font-size="9" text-anchor="middle" font-family="JetBrains Mono,monospace">RW×3 / IMU</text>`;
+ $('drawing').innerHTML=s;
+}
+
+/* ===================== RENDER STATE ===================== */
+let rpmPhase=0;
+function renderState(s,index){
+ missionGroup.visible=envGroup.visible=tab===0;cutGroup.visible=tab===1;comparisonGroup.visible=tab===2;
+ lab.visible=tab!==0;
+ craft.position.set(s.x,s.y-s.comp,0);
+ craft.rotation.z=(s.phase>=3?s.ls:0)-s.error*rad;
+ craft.rotation.x=Math.sin(s.t)*s.error*rad*.15;
+ const offs=legParts.map(l=>p.independent&&s.phase>=3?clamp(hardH(s.x+l.c*p.radius,l.s*p.radius)-pathH(s.x)-Math.tan(s.ls)*l.c*p.radius,-.3,.3):0);
+ poseLegs(s.phase===3||s.phase>=4?s.comp:0,offs);
+ rpmPhase=s.t*(s.momentum/p.inertia);
+ wheelParts.forEach((w,i)=>w.rotation.y=rpmPhase*(1+i*.3)+(p.rw&&s.phase<3?s.t*30:0));
+ const inShadow=shadow(s.x);
+ headLight.intensity=inShadow?3:0;
+ legParts.forEach(l=>{l.coilMat.emissiveIntensity=s.phase===3?.25+2*clamp(s.speed/p.velocity,0,1):.25;});
+ rover.visible=p.viper;
+ if(p.viper){rover.position.set(s.roverX,ground(s.roverX,-2.6),-2.6);rover.rotation.z=Math.atan2(ground(s.roverX+.5,-2.6)-ground(s.roverX-.5,-2.6),1);rover.wheels.forEach(w=>w.rotation.y=-s.roverX/.25);}
+ const attr=trail.geometry.attributes.position,from=Math.max(0,index-2399);let n=0;
+ for(let i=from;i<=index;i++){const q=samples[i];attr.setXYZ(n++,q.x,q.y+p.height,0);}
+ attr.needsUpdate=true;trail.geometry.setDrawRange(0,n);
+ predicted.visible=p.prediction;landMark.visible=p.prediction&&s.phase<3;
+ const intensity=s.phase===3?clamp(s.speed/p.velocity,0,1):.03;
+ piston.position.y=-s.comp/Math.max(.01,p.stroke)*1.6;
+ const braking=s.phase===3&&p.active&&s.comp>.9*p.stroke;
+ coils.forEach(c=>{c.material.emissiveIntensity=.08+intensity*2;c.material.color.set(braking?0xff3b30:0xd4853f);c.material.emissive.set(braking?0xff2010:0xc2501a);});
+ const flowA=s.phase===3&&s.pelec>0,flowB=s.pshunt>0;
+ busA.forEach((d,i)=>{const f=(s.t*(.25+intensity)+i/busA.length)%1,q=along(pathA,f);d.position.set(q[0],q[1],.3);d.visible=flowA;});
+ busB.forEach((d,i)=>{const f=(s.t*(.3+intensity)+i/busB.length)%1,q=along(pathB,f);d.position.set(q[0],q[1],.3);d.visible=flowB;});
+ if(shuntBox)shuntBox.material.emissiveIntensity=flowB?clamp(s.pshunt/p.heater,.2,1):0;
+ const h=currentHop(s),pt=h?s.t-h.startT-h.flightT:-1;
+ comparePistons.forEach((v,i)=>{
+  if(i===0)v.position.y=-s.comp/Math.max(.01,p.stroke);
+  if(i===1)v.position.y=pt>=0?-Math.exp(-pt*1.1)*Math.abs(Math.sin(pt*9))*1.4:0;
+  if(i===2)v.position.y=pt>=0?-Math.min(1,Math.floor(pt*12)/7):0;
+  if(i===3)v.position.y=pt>=0?-Math.min(1.2,pt*5):0;
+ });
+ const cam=$('camera').value;let target;
+ if(tab===0){
+  target=cam==='top'?new THREE.Vector3(CR.x,-p.depth/2,0):new THREE.Vector3(s.x,s.y+1,0);
+  if(cam!=='free'){
+   const pos=cam==='top'?new THREE.Vector3(CR.x-25,45,45):cam==='side'?new THREE.Vector3(s.x,s.y+3,24):new THREE.Vector3(s.x-10,s.y+6,14);
+   camera.position.lerp(pos,.1);orbit.target.lerp(target,.15);
+  }
+ }else{
+  target=new THREE.Vector3(0,2,0);
+  if(cam!=='free'){camera.position.lerp(tab===1?new THREE.Vector3(7,5,10):new THREE.Vector3(0,6,15),.1);orbit.target.lerp(target,.15);}
+ }
+ const ev=Math.max(p.sun,1.5)*rad,sd=new THREE.Vector3(-Math.cos(ev),Math.sin(ev),-.15).normalize();
+ const st=tab===0?orbit.target:new THREE.Vector3(0,2,0);
+ sun.position.copy(st).addScaledVector(sd,160);sun.target.position.copy(st);
+ sun.intensity=tab===0?(p.sun<=0?.45:2.6):.6;
+ orbit.update();renderer.render(scene,camera);
+}
+
+/* ===================== REBUILD / TRANSPORT ===================== */
+function rebuild(){
+ time=0;singleEnd=null;lastUI=-1;prev=null;
+ buildTables();simulate();
+ const key=[p.depth,p.entry,p.exit,p.obstacle,p.ice,p.sun,p.earth].join('|');
+ if(key!==envKey){buildEnvironment();envKey=key;}
+ buildMission();buildCut();buildComparison();drawDimensions();updateCharts();
+ const snap=snapshot();if(snap){prediction(snap.s);updateUI(snap.s);}
+}
+function reset(){time=0;singleEnd=null;lastUI=-1;prev=null;if(samples.length)prediction(samples[0]);}
+function selectTab(n){tab=n;document.querySelectorAll('[data-tab]').forEach(e=>e.classList.toggle('active',Number(e.dataset.tab)===tab));lastUI=-1;}
+document.querySelectorAll('[data-tab]').forEach(e=>e.onclick=()=>selectTab(Number(e.dataset.tab)));
+$('camera').onchange=()=>{lastUI=-1;};
+$('play').onclick=()=>{if(time>=endTime)reset();playing=!playing;lastUI=-1;};
+$('reset').onclick=()=>{reset();playing=true;};
+$('single').onclick=()=>{if(time>=endTime)reset();const next=hopData.find(h=>h.endT>time+.01);if(next){singleEnd=next.endT;playing=true;}lastUI=-1;};
+let wasPlaying=true;
+$('timeline').addEventListener('pointerdown',()=>{wasPlaying=playing;playing=false;});
+$('timeline').addEventListener('input',e=>{playing=false;time=clamp(Number(e.target.value),0,endTime);lastUI=-1;const sn=snapshot();if(sn)prediction(sn.s);});
+$('timeline').addEventListener('change',()=>{playing=wasPlaying;singleEnd=null;lastUI=-1;});
+$('language').onclick=()=>{
+ lang=lang==='ar'?'en':'ar';translate();buildControls();buildCut();buildComparison();updateCharts();drawDimensions();lastUI=-1;
+};
+document.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>{
+ const id=b.dataset.jump,target=$(id);const det=id==='charts'?$('sec6'):target;
+ if(det&&det.tagName==='DETAILS')det.open=true;target.scrollIntoView({behavior:'smooth',block:'start'});
+});
+document.querySelectorAll('details').forEach(d=>d.addEventListener('toggle',()=>{if(d.open){energyChart.resize();gChart.resize();}}));
+document.addEventListener('keydown',e=>{
+ if(/INPUT|SELECT|TEXTAREA/.test(e.target.tagName))return;
+ if(e.code==='Space'){e.preventDefault();$('play').click();}
+ const k=e.key.toLowerCase();
+ if(k==='r')$('reset').click();
+ if(k==='j')$('single').click();
+ if(['1','2','3'].includes(e.key))selectTab(Number(e.key)-1);
+});
+function resize(){
+ const r=$('viewport').getBoundingClientRect();if(r.width<1||r.height<1)return;
+ renderer.setSize(r.width,r.height);camera.aspect=r.width/r.height;camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe($('viewport'));
+renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();playing=false;toast(tr('فُقد سياق WebGL. أعد تحميل الصفحة.','WebGL context lost. Reload the page.'),'danger');});
+
+/* ===================== EVENT TOASTS ===================== */
+let prev=null;
+function events(s){
+ const cur={hop:s.hop,phase:s.phase,sh:shadow(s.x),dte:dteAt(s.x,s.y),rover:s.roverStopped,failed:s.failed,boulder:s.x>BO.x+BO.r+BO.e,exit:s.x>exitRim()};
+ if(prev&&playing){
+  if(cur.phase===3&&prev.phase!==3)toast(tr('بدء امتصاص الارتطام واسترجاع الطاقة.','Impact damping and energy recovery started.'),'good');
+  if(cur.phase===4&&prev.phase!==4)toast(tr('تفريغ زخم العجلات عبر تماس الأقدام.','Unloading wheel momentum through foot contact.'));
+  if(cur.sh&&!prev.sh)toast(tr(`دخول الظل الدائم — ${fmt(p.tpsr,0)} K؛ المصباح مفعل.`,`Entered permanent shadow — ${fmt(p.tpsr,0)} K; headlamp on.`),'ice');
+  if(!cur.sh&&prev.sh)toast(tr('خروج إلى السطح المضاء.','Back in sunlight.'),'good');
+  if(!cur.dte&&prev.dte)toast(tr('انقطع خط DTE — يلزم مُرحّل.','DTE link occluded — relay required.'),'warn');
+  if(cur.dte&&!prev.dte)toast(tr('استُعيد خط DTE.','DTE link restored.'),'good');
+  if(cur.rover&&!prev.rover)toast(tr('VIPER متوقف عند حد الميل أو العائق.','VIPER stalled at slope or obstacle limit.'),'warn');
+  if(cur.boulder&&!prev.boulder)toast(tr(`✓ تجاوز الصخرة بارتفاع ${fmt(p.obstacle,1)} m`,`✓ Cleared ${fmt(p.obstacle,1)} m boulder`),'good');
+  if(cur.exit&&!prev.exit)toast(tr(`✓ الخروج من الفوهة عبر جدار ${fmt(p.exit,0)}°`,`✓ Exited crater over ${fmt(p.exit,0)}° wall`),'good');
+  if(cur.failed&&!prev.failed)toast(tr('توقفت المهمة — راجع الملاحظات الهندسية.','Mission halted — see engineering notes.'),'danger');
+ }
+ if(!prev||cur.hop!==prev.hop||cur.phase!==prev.phase)prediction(s);
+ prev=cur;
+}
+
+/* ===================== MAIN LOOP ===================== */
+translate();buildControls();rebuild();resize();
+let last=performance.now(),acc=0;
+function frame(now){
+ requestAnimationFrame(frame);
+ const dt=Math.min((now-last)/1000,.1);last=now;
+ if(playing){
+  acc+=dt*Number($('speed').value);
+  while(acc>=STEP){time=Math.min(time+STEP,endTime);acc-=STEP;}
+  if(singleEnd!==null&&time>=singleEnd){time=singleEnd;playing=false;singleEnd=null;}
+  if(time>=endTime){
+   if(p.continuous&&endTime>0){reset();toast(tr('بدء دورة جديدة؛ أُعيدت ميزانية المهمة.','New cycle; mission budget reset.'),'good');}
+   else playing=false;
+  }
+ }else acc=0;
+ const snap=snapshot();if(!snap)return;
+ renderState(snap.s,snap.index);
+ if(now-lastUI>120||lastUI<0){updateUI(snap.s);events(snap.s);lastUI=now;}
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
